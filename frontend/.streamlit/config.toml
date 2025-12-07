@@ -1,0 +1,9 @@
+# .streamlit/config.toml
+
+[theme]
+base="dark"
+primaryColor="#4F46E5"     # Índigo profesional para botones y acentos
+backgroundColor="#0a0a0a"  # Negro casi puro para el fondo principal
+secondaryBackgroundColor="#121212" # Gris muy oscuro para barra lateral y inputs
+textColor="#FAFAFA"        # Blanco roto para texto (menos agresivo que el blanco puro)
+font="sans serif"

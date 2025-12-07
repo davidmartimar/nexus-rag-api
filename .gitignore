@@ -1,0 +1,19 @@
+# Security
+.env
+.venv
+venv/
+
+# Python & System junk
+__pycache__/
+*.pyc
+*.DS_Store
+
+# Docker junk
+.docker/
+
+# NEXUS Data
+backend/chroma_db/
+backend/data_uploads/
+
+# Generated Assets
+frontend/app/nexus_logo.svg
