@@ -64,7 +64,7 @@ nexus-rag-api/
 │   │   └── main.py     # UI Logic & Animation
 ├── docker-compose.yml  # Orchestration
 └── README.md
-
+```
 ## License
 
 This project is open-source and available under the [MIT License](LICENSE).
