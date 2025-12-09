@@ -27,8 +27,8 @@ if not os.path.exists(LOGO_PATH):
 
 # --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="NEXUS Enterprise",
-    page_icon=LOGO_PATH,
+    page_title="NEXUS CORE",
+    page_icon="⚛️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -176,37 +176,128 @@ def typewriter_effect(text, placeholder):
         time.sleep(0.02)
     placeholder.markdown(displayed_text)
 
-def check_system_status():
+def check_system_status(collection_name="nexus_slot_1"):
     try:
-        response = requests.get(f"{BACKEND_URL}/api/v1/status", timeout=2)
+        params = {"collection_name": collection_name}
+        response = requests.get(f"{BACKEND_URL}/api/v1/status", params=params, timeout=2)
         if response.status_code == 200:
             return response.json()
     except:
         pass
     return {"status": "offline", "ready": False, "document_count": 0}
 
-def get_uploaded_documents():
+
+
+def get_uploaded_documents(collection_name="nexus_slot_1"):
     try:
-        response = requests.get(f"{BACKEND_URL}/api/v1/documents", timeout=2)
+        params = {"collection_name": collection_name}
+        response = requests.get(f"{BACKEND_URL}/api/v1/documents", params=params, timeout=2)
         if response.status_code == 200:
             return response.json().get("documents", [])
     except:
         pass
     return []
 
-def delete_document(filename):
+def get_slot_config():
     try:
-        response = requests.delete(f"{BACKEND_URL}/api/v1/documents/{filename}", timeout=5)
+        response = requests.get(f"{BACKEND_URL}/api/v1/config", timeout=2)
+        if response.status_code == 200:
+            return response.json()
+    except:
+        pass
+    return None
+
+def save_slot_config(config):
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/v1/config", json=config, timeout=5)
         return response.status_code == 200
     except:
         return False
 
-# --- INITIALIZATION ---
+def add_new_slot(name):
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/v1/slots", json={"name": name}, timeout=5)
+        if response.status_code == 200:
+            return response.json()
+    except:
+        pass
+    return None
+
+def remove_slot(slot_id):
+    try:
+        response = requests.delete(f"{BACKEND_URL}/api/v1/slots/{slot_id}", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
+def delete_document(filename, collection_name="nexus_slot_1"):
+    try:
+        params = {"collection_name": collection_name}
+        response = requests.delete(f"{BACKEND_URL}/api/v1/documents/{filename}", params=params, timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
+
+
+def reset_knowledge_base(collection_name):
+    try:
+        response = requests.post(f"{BACKEND_URL}/api/v1/reset", json={"collection_name": collection_name}, timeout=10)
+        return response.status_code == 200
+    except:
+        return False
+
+def download_backup():
+    try:
+        response = requests.get(f"{BACKEND_URL}/api/v1/backup", timeout=60)
+        if response.status_code == 200:
+            return response.content
+    except:
+        pass
+    return None
+
+def restore_backup(file):
+    try:
+        files = {"file": ("backup.zip", file, "application/zip")}
+        response = requests.post(f"{BACKEND_URL}/api/v1/restore", files=files, timeout=60)
+        return response.status_code == 200
+    except:
+        return False
 if "messages" not in st.session_state:
     st.session_state.messages = []
     st.session_state.messages.append({"role": "assistant", "content": "Welcome to Nexus. Secure connection established."})
 
-system_status = check_system_status()
+if "uploader_key" not in st.session_state:
+    st.session_state["uploader_key"] = 0
+
+if "selected_slot" not in st.session_state:
+    st.session_state["selected_slot"] = "nexus_slot_1"
+
+if "slot_names" not in st.session_state:
+    # Try fetching from backend with retries (important after restart)
+    remote_config = None
+    with st.spinner("Connecting to Neural Core..."):
+        for i in range(60):
+            remote_config = get_slot_config()
+            if remote_config:
+                break
+            time.sleep(1)
+        
+    if remote_config:
+        st.session_state["slot_names"] = remote_config
+    else:
+        # Fallback default
+        st.error("⚠️ Connection to Neural Core timed out. Using offline defaults.")
+        st.session_state["slot_names"] = {
+            "nexus_slot_1": "Memory Slot 1"
+        }
+        st.session_state["selected_slot"] = "nexus_slot_1"
+
+SLOTS = st.session_state["slot_names"]
+
+SLOTS = st.session_state["slot_names"]
+
+system_status = check_system_status(st.session_state["selected_slot"])
 is_online = system_status.get("status") == "online"
 has_knowledge = system_status.get("ready", False)
 
@@ -250,14 +341,32 @@ st.markdown("---")
 with st.sidebar:
     render_logo(size="small")
     
-    st.markdown("### 📥 Knowledge Ingestion")
+    # Brain Slot Selector
+    # Use key='selected_slot' to ensure session_state is updated BEFORE script run (fixes lag)
+    # We need to find the index of the current slot in the keys list
+    slot_keys = list(st.session_state["slot_names"].keys())
+    current_index = 0
+    if st.session_state.get("selected_slot") in slot_keys:
+        current_index = slot_keys.index(st.session_state["selected_slot"])
+
+    st.selectbox(
+        "Active Memory Slot",
+        options=slot_keys,
+        format_func=lambda x: st.session_state["slot_names"][x],
+        index=current_index,
+        key="selected_slot"
+    )
+    st.markdown("---")
+    
+    st.markdown("### Knowledge Ingestion")
     st.caption("Upload documents to train the knowledge base.")
     
     uploaded_files = st.file_uploader(
         "Select files", 
         type=["pdf", "docx", "txt", "md", "mp3", "wav", "m4a"], 
         accept_multiple_files=True,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        key=f"uploader_{st.session_state['uploader_key']}"
     )
     
     if uploaded_files:
@@ -267,16 +376,19 @@ with st.sidebar:
                 try:
                     files = []
                     for file in uploaded_files:
-                        files.append(("files", (file.name, file, file.type)))
+                        files.append(("files", (file.name, file.getvalue(), file.type)))
                     
-                    response = requests.post(f"{BACKEND_URL}/api/v1/ingest", files=files)
+                    params = {"collection_name": st.session_state["selected_slot"]}
+                    response = requests.post(f"{BACKEND_URL}/api/v1/ingest", files=files, params=params)
                     
                     if response.status_code == 200:
+                        # st.write("Debug Response:", response.json()) # DEBUG REMOVED
                         results = response.json().get("results", [])
                         success_count = sum(1 for r in results if r["status"] == "success")
                         if success_count > 0:
                             st.toast(f"Successfully ingested {success_count} documents!", icon="✅")
                             time.sleep(1)
+                            st.session_state["uploader_key"] += 1
                             st.rerun() # Refresh to update status
                         else:
                             st.error("Failed to ingest documents.")
@@ -285,36 +397,183 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"Connection Failed: {e}")
     
-    st.divider()
+    
+    # Only show Divider if we have something below to separate, or just keep spacing clean
+    if get_uploaded_documents(st.session_state["selected_slot"]):
+         st.divider()
     
     # Knowledge Management
-    st.markdown("### 📚 Current Knowledge")
-    documents = get_uploaded_documents()
+    # Persist expander state
+    if "expander_knowledge_open" not in st.session_state:
+        st.session_state["expander_knowledge_open"] = False
+        
+    with st.expander("Current Knowledge", expanded=st.session_state["expander_knowledge_open"]):
+        documents = get_uploaded_documents(st.session_state["selected_slot"])
+        
+        if documents:
+            for doc in documents:
+                col_doc, col_del = st.columns([8, 2])
+                with col_doc:
+                    st.markdown(f"<div style='font-size:0.8rem; padding-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>📄 {doc}</div>", unsafe_allow_html=True)
+                with col_del:
+                    if st.button("🗑️", key=f"del_{doc}", help=f"Delete {doc}"):
+                        if delete_document(doc, st.session_state["selected_slot"]):
+                            st.toast(f"Deleted {doc}", icon="🗑️")
+                            st.session_state["expander_knowledge_open"] = True # Keep open
+                            time.sleep(0.5)
+                            st.rerun()
+                        else:
+                            st.error("Failed to delete.")
+        else:
+             pass # Don't show anything if empty, keeps layout clean
+            
+    st.divider()
     
-    if documents:
-        for doc in documents:
-            col_doc, col_del = st.columns([8, 2])
-            with col_doc:
-                st.markdown(f"<div style='font-size:0.8rem; padding-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>📄 {doc}</div>", unsafe_allow_html=True)
+    # Advanced Options
+    if "expander_advanced_open" not in st.session_state:
+        st.session_state["expander_advanced_open"] = False
+
+    with st.expander("Advanced Options", expanded=st.session_state["expander_advanced_open"]):
+        
+        # 1. Manage Brains
+        st.caption("Manage Memory Slots")
+        
+        # Dynamic inputs for renaming
+        # We'll use a form or just loop through them
+        # Note: We need to handle the dict carefully
+        
+        slot_ids = list(st.session_state["slot_names"].keys())
+        
+        for s_id in slot_ids:
+            col_name, col_del = st.columns([8, 2])
+            with col_name:
+                 st.session_state["slot_names"][s_id] = st.text_input(f"Name for {s_id}", value=st.session_state["slot_names"][s_id], key=f"in_{s_id}", label_visibility="collapsed")
             with col_del:
-                if st.button("🗑️", key=f"del_{doc}", help=f"Delete {doc}"):
-                    if delete_document(doc):
-                        st.toast(f"Deleted {doc}", icon="🗑️")
-                        time.sleep(0.5)
-                        st.rerun()
+                # Don't delete if it's the last one? Or allow it?
+                # Let's prevent deleting the currently selected one to avoid errors, or handle it.
+                # Delete Button
+                # Use a unique key. If clicked, we handle it here.
+                # Issue: st.button return True only on the run it is clicked.
+                
+                if st.button("🗑️", key=f"del_slot_{s_id}", help="Delete this memory slot"):
+                    if len(st.session_state["slot_names"]) <= 1:
+                        st.toast("Cannot delete the last memory slot!", icon="🚫")
+                    elif s_id == st.session_state["selected_slot"]:
+                        st.toast("Cannot delete active slot. Switch first.", icon="🚫")
                     else:
-                        st.error("Failed to delete.")
-    else:
-        st.caption("No documents indexed yet.")
+                        if remove_slot(s_id):
+                             del st.session_state["slot_names"][s_id]
+                             st.toast("Memory slot deleted.", icon="🗑️")
+                             st.session_state["expander_advanced_open"] = True # Keep open
+                             time.sleep(0.5)
+                             st.rerun()
+                        else:
+                            st.toast("Failed to delete from backend.", icon="❌")
+
+        # Save Button for Renames
+        if st.button("💾 Save Names", help="Save name changes"):
+            if save_slot_config(st.session_state["slot_names"]):
+                st.toast("Configuration Saved!", icon="💾")
+                st.session_state["expander_advanced_open"] = True # Keep open
+                time.sleep(1)
+                st.rerun()
+            else:
+                 st.error("Failed to save.")
+        
+        st.markdown("---")
+        
+        # Add New Brain
+        col_new, col_add = st.columns([8, 2])
+        with col_new:
+            new_brain_name = st.text_input("New Brain Name", placeholder="e.g. Project X", key="new_brain_in", label_visibility="collapsed")
+        with col_add:
+            if st.button("➕", help="Create new memory slot"):
+                if new_brain_name:
+                    res = add_new_slot(new_brain_name)
+                    if res:
+                        st.session_state["slot_names"][res["slot_id"]] = res["name"]
+                        st.toast("New Brain Created!", icon="✅")
+                        st.session_state["expander_advanced_open"] = True # Keep open
+                        time.sleep(1)
+                        st.rerun()
+
+        st.divider()
+
+        # 2. Memory Export/Import
+        st.caption("Export/Import Memory Slot")
+        st.info("Export the current brain's knowledge to a zip file, or import knowledge from a zip file.")
+        
+        current_slot = st.session_state["selected_slot"]
+        current_slot_name = st.session_state["slot_names"].get(current_slot, "Unknown")
+        
+        # EXPORT
+        # Use localhost for browser access
+        export_url = f"http://localhost:8000/api/v1/export?collection_name={current_slot}"
+        st.link_button(f"Export '{current_slot_name}'", export_url, help="Download vectors and files for this slot")
+        
+        st.divider()
+        
+        # IMPORT
+        def keep_advanced_open_import():
+            st.session_state["expander_advanced_open"] = True
+
+        uploaded_import = st.file_uploader(f"Import to '{current_slot_name}'", type="zip", key="import_uploader", on_change=keep_advanced_open_import)
+        
+        if uploaded_import:
+            st.session_state["expander_advanced_open"] = True
+            if st.button("Import Knowledge", type="primary"):
+                with st.spinner("Importing Knowledge..."):
+                    try:
+                        files = {"file": (uploaded_import.name, uploaded_import.getvalue(), "application/zip")}
+                        data = {"collection_name": current_slot}
+                        response = requests.post(f"{BACKEND_URL}/api/v1/import", files=files, data=data, timeout=60)
+                        
+                        if response.status_code == 200:
+                            st.toast("Import Successful!", icon="✅")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error(f"Import Failed: {response.text}")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+        
+        st.divider()
+
+        # 3. Danger Zone
+        st.caption("Danger Zone")
+        
+        # Check if current slot has documents
+        has_docs = len(get_uploaded_documents(st.session_state["selected_slot"])) > 0
+        
+        if st.button("Erase All Knowledge", help="Delete all documents in this memory slot", disabled=not has_docs):
+            st.session_state["confirm_erase"] = True
+
+        if st.session_state.get("confirm_erase", False):
+            st.warning(f"Are you sure you want to delete ALL knowledge in {st.session_state['slot_names'][st.session_state['selected_slot']]}?")
+            col_yes, col_no = st.columns(2)
+            with col_yes:
+                if st.button("Yes, Delete Everything", type="primary"):
+                    if reset_knowledge_base(st.session_state["selected_slot"]):
+                         st.toast("Brain washed successfully!")
+                         st.session_state["confirm_erase"] = False
+                         time.sleep(1)
+                         st.rerun()
+                    else:
+                        st.error("Failed to reset.")
+            with col_no:
+                if st.button("Cancel"):
+                    st.session_state["confirm_erase"] = False
+                    st.rerun()
     
     st.divider()
     
     # Stats
-    st.markdown("### 📊 System Stats")
+    st.markdown("### System Stats")
     st.markdown(f"**Documents Indexed:** {system_status.get('document_count', 0)}")
     
     st.divider()
-    st.markdown("""<div style="font-size:0.7rem; color:#64748b;"><strong>NEXUS CORE v2.0</strong><br>&copy; 2025 Barnalytics</div>""", unsafe_allow_html=True)
+    st.divider()
+    st.markdown("""<div style="font-size:0.7rem; color:#64748b;"><strong>NEXUS CORE v3.0</strong><br>&copy; 2025 Barnalytics</div>""", unsafe_allow_html=True)
 
 # --- UI LAYOUT: CHAT ---
 # Render Chat History
@@ -330,6 +589,11 @@ elif not has_knowledge:
     st.chat_input("Upload documents to train the knowledge before querys", disabled=True)
 else:
     if prompt := st.chat_input("Enter your query..."):
+        
+        # Display Active Brain Name (Visual Cue)
+        current_brain = st.session_state["slot_names"].get(st.session_state["selected_slot"], "Unknown Brain")
+        st.caption(f"Answering from: **{current_brain}**")
+        
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -339,7 +603,7 @@ else:
             
             with st.spinner("Analyzing..."):
                 try:
-                    payload = {"query": prompt}
+                    payload = {"query": prompt, "collection_name": st.session_state["selected_slot"]}
                     response = requests.post(f"{BACKEND_URL}/api/v1/chat", json=payload, timeout=30)
                     
                     if response.status_code == 200:

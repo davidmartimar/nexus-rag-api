@@ -6,9 +6,12 @@ from langchain.chains import RetrievalQA
 
 # Configuration
 CHROMA_DB_DIR = "/app/chroma_db"
-COLLECTION_NAME = "nexus_knowledge"
+from app.services.rag_service import DEFAULT_COLLECTION_NAME
 
-def get_answer(query: str):
+# Configuration
+CHROMA_DB_DIR = "/app/chroma_db"
+
+def get_answer(query: str, collection_name: str = DEFAULT_COLLECTION_NAME):
     """
     1. Embeds the query.
     2. Searches ChromaDB for relevant chunks.
@@ -21,7 +24,7 @@ def get_answer(query: str):
         vector_db = Chroma(
             persist_directory=CHROMA_DB_DIR,
             embedding_function=embeddings,
-            collection_name=COLLECTION_NAME
+            collection_name=collection_name
         )
 
         # 2. Initialize LLM (The Brain)

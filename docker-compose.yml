@@ -7,7 +7,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app  # Update local changes in real-time
+      - ./backend:/app # Update local changes in real-time
+    restart: always
     env_file:
       - .env
 
@@ -19,6 +20,6 @@ services:
     volumes:
       - ./frontend:/app
     depends_on:
-      - backend  # Backend should start before frontend
+      - backend # Backend should start before frontend
     env_file:
       - .env

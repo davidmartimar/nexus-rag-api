@@ -1,19 +1,60 @@
-# Security
+# --- Security & Secrets ---
 .env
-.venv
-venv/
+.env.*
+secrets.yaml
+*.key
+*.pem
 
-# Python & System junk
+# --- Python ---
 __pycache__/
 *.pyc
-*.DS_Store
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Docker junk
-.docker/
-
-# NEXUS Data
+# --- Nexus RAG Data & Persistence ---
 backend/chroma_db/
+backend/chroma_db_old/
+backend/chroma_db_temp/
 backend/data_uploads/
+backend/slots.json
 
-# Generated Assets
+# --- Temporary & Backup Files ---
+*.zip
+*.log
+*.tmp
+temp_*
+*_temp
+export_*
+backup.zip
+nexus_export_*.zip
+
+# --- Docker ---
+.docker/
+docker-compose.override.yml
+
+# --- IDEs & Editors ---
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- OS Specific ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Generated Assets ---
 frontend/app/nexus_logo.svg

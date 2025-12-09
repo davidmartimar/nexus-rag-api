@@ -4,11 +4,11 @@ from app.services.rag_service import get_document_count
 router = APIRouter()
 
 @router.get("/status", tags=["Status"])
-async def get_status():
+async def get_status(collection_name: str = "nexus_slot_1"):
     """
     Returns the status of the knowledge base.
     """
-    count = get_document_count()
+    count = get_document_count(collection_name)
     return {
         "status": "online",
         "document_count": count,

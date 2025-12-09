@@ -7,7 +7,10 @@ from app.services.rag_service import index_document
 router = APIRouter()
 
 @router.post("/ingest", tags=["Ingestion"])
-async def ingest_documents(files: List[UploadFile] = File(...)):
+async def ingest_documents(
+    files: List[UploadFile] = File(...),
+    collection_name: str = "nexus_slot_1"
+):
     """
     Uploads multiple files and indexes them into ChromaDB.
     """
@@ -24,7 +27,7 @@ async def ingest_documents(files: List[UploadFile] = File(...)):
                 shutil.copyfileobj(file.file, buffer)
                 
             # 2. Trigger Indexing (RAG Magic)
-            indexing_result = index_document(file_path)
+            indexing_result = index_document(file_path, collection_name)
             
             results.append({
                 "filename": file.filename,

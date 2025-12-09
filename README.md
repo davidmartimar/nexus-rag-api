@@ -1,36 +1,44 @@
 # ネ NEXUS: Enterprise RAG Knowledge Engine
 
-NEXUS is a production-ready **Retrieval-Augmented Generation (RAG)** system designed for secure enterprise document ingestion and intelligent querying. It features a microservices architecture fully containerized with Docker.
+NEXUS is a production-ready **Retrieval-Augmented Generation (RAG)** system designed for secure enterprise document ingestion and intelligent querying. It features a microservices architecture fully containerized with Docker, with **Dynamic Memory Slots** and **Knowledge Portability**.
 
 ![Status](https://img.shields.io/badge/Status-Active-success)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 ![Python](https://img.shields.io/badge/Python-3.10-yellow)
+![Version](https://img.shields.io/badge/Version-3.0-purple)
+
+## Key Features v3.0
+
+*   **Dynamic Memory Slots**: Create unlimited, isolated "Memory Slots" to manage different knowledge bases (e.g., 'Finance', 'Legal', 'Project X') without data overlap.
+*   **Import / Export**: Potable knowledge. Export any Memory Slot to a ZIP file (including vectors and source documents) and import it into any other Nexus instance or slot.
+*   **Robust Ingestion**: Supports PDF, DOCX, TXT, and MD files with intelligent chunking and vectorization using OpenAI Embeddings.
+*   **Real-Time Admin Panel**: Manage your knowledge (Delete documents, Erase full slots, Rename Memory Slots) directly from the UI.
 
 ## Architecture
 
 The system is composed of two isolated microservices:
 
-1.  **Backend Node (The Brain):**
-    * **FastAPI:** High-performance async API.
-    * **LangChain:** RAG logic orchestration.
-    * **ChromaDB:** Local vector persistence (Embeddings).
-    * **OpenAI GPT-4/3.5:** Generative intelligence.
-    
+1.  **Backend Node (The Core):**
+    *   **FastAPI:** High-performance async API.
+    *   **LangChain:** RAG logic orchestration.
+    *   **ChromaDB:** Local vector persistence (Embeddings).
+    *   **OpenAI GPT-4/3.5:** Generative intelligence.
+
 2.  **Frontend Node (The Interface):**
-    * **Streamlit:** Reactive UI for document ingestion and chat.
-    * **Dynamic SVG Generation:** JIT asset creation for branding.
+    *   **Streamlit:** Reactive UI for document ingestion and chat.
+    *   **Dynamic SVG Generation:** JIT asset creation for branding.
 
 ## Quick Start
 
 ### Prerequisites
-* Docker & Docker Compose
-* OpenAI API Key
+*   Docker & Docker Compose
+*   OpenAI API Key
 
 ### Installation
 
 1.  **Clone the repository**
     ```bash
-    git clone [https://github.com/davidmartimar/nexus-rag-api.git](https://github.com/davidmartimar/nexus-rag-api.git)
+    git clone https://github.com/davidmartimar/nexus-rag-api.git
     cd nexus-rag-api
     ```
 
@@ -47,8 +55,24 @@ The system is composed of two isolated microservices:
     ```
 
 4.  **Access**
-    * **Frontend UI:** `http://localhost:8501`
-    * **Backend Swagger:** `http://localhost:8000/docs`
+    *   **Frontend UI:** `http://localhost:8501`
+    *   **Backend Swagger:** `http://localhost:8000/docs`
+
+## Usage Guide
+
+### Managing Memory Slots
+*   Use the **Sidebar** to switch between active Memory Slots.
+*   Go to **Advanced Options** to Rename, Create, or Delete slots.
+
+### Ingestion & Chat
+*   Drag & Drop documents into the uploader.
+*   Wait for the "Knowledge is Ready" green indicator.
+*   Chat with the active Memory Slot. The context provided is strictly limited to the selected slot.
+
+### Backup & Portability
+*   Navigate to **Advanced Options > Export/Import**.
+*   Click **Export** to download a full snapshot of the current Memory Slot.
+*   Use **Import** to restore knowledge from a previous export zip file.
 
 ## Project Structure
 
@@ -56,16 +80,17 @@ The system is composed of two isolated microservices:
 nexus-rag-api/
 ├── backend/            # FastAPI Service
 │   ├── app/
-│   │   ├── api/        # Endpoints (Chat, Ingest)
-│   │   ├── services/   # RAG Logic & Vector Store
-│   │   └── core/       # Config
+│   │   ├── api/        # Endpoints (Admin, Chat, Ingest)
+│   │   ├── services/   # RAG Logic, Vector Store & Import/Export
+│   │   └── core/       # Config & Constants
 ├── frontend/           # Streamlit Service
 │   ├── app/
-│   │   └── main.py     # UI Logic & Animation
-├── docker-compose.yml  # Orchestration
+│   │   └── main.py     # UI Logic, State Management & Animations
+├── docker-compose.yml  # Orchestration & Volume Persistence
 └── README.md
 ```
+
 ## License
 
 This project is open-source and available under the [MIT License](LICENSE).
-Built with ❤️ by **David Martínez Martín** (davidmartimar).
+Built by **David Martínez Martín** (davidmartimar).
