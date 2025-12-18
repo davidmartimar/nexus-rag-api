@@ -8,3 +8,4 @@ tiktoken==0.5.1
 pypdf==3.17.1
 python-multipart==0.0.6
 docx2txt==0.8
+pymupdf==1.23.6

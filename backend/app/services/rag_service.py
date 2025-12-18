@@ -4,7 +4,7 @@ import zipfile
 import json
 import uuid
 import openai
-from langchain.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain.document_loaders import PyMuPDFLoader, Docx2txtLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
@@ -33,7 +33,7 @@ def load_document(file_path: str):
     ext = os.path.splitext(file_path)[1].lower()
     
     if ext == ".pdf":
-        loader = PyPDFLoader(file_path)
+        loader = PyMuPDFLoader(file_path)
         return loader.load()
     elif ext == ".docx":
         loader = Docx2txtLoader(file_path)

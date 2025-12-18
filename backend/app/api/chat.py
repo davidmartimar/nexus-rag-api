@@ -8,6 +8,7 @@ router = APIRouter()
 class QueryRequest(BaseModel):
     query: str
     collection_name: str = "nexus_slot_1"
+    history: list = []
 
 @router.post("/chat", tags=["Chat"])
 async def chat_endpoint(request: QueryRequest):
@@ -18,7 +19,7 @@ async def chat_endpoint(request: QueryRequest):
         raise HTTPException(status_code=400, detail="Query cannot be empty")
         
     try:
-        response = get_answer(request.query, request.collection_name)
+        response = get_answer(request.query, request.collection_name, request.history)
         return response
         
     except Exception as e:

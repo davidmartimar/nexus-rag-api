@@ -3,6 +3,7 @@ import requests
 import time
 import base64
 import os
+from fpdf import FPDF
 
 # --- CONFIGURATION ---
 BACKEND_URL = "http://backend:8000"
@@ -263,6 +264,30 @@ def restore_backup(file):
         return response.status_code == 200
     except:
         return False
+
+def create_pdf(messages):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    
+    pdf.cell(200, 10, txt="NEXUS Conversation Log", ln=True, align='C')
+    pdf.ln(10)
+    
+    for msg in messages:
+        role = msg["role"].upper()
+        content = msg["content"]
+        
+        # Simple sanitization
+        content = content.encode('latin-1', 'replace').decode('latin-1')
+        
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(0, 10, txt=f"{role}:", ln=True)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, txt=content)
+        pdf.ln(5)
+        
+    return pdf.output(dest="S").encode("latin-1")
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
     st.session_state.messages.append({"role": "assistant", "content": "Welcome to Nexus. Secure connection established."})
@@ -341,7 +366,7 @@ st.markdown("---")
 with st.sidebar:
     render_logo(size="small")
     
-    # Brain Slot Selector
+    # Memory Slot Selector
     # Use key='selected_slot' to ensure session_state is updated BEFORE script run (fixes lag)
     # We need to find the index of the current slot in the keys list
     slot_keys = list(st.session_state["slot_names"].keys())
@@ -435,7 +460,7 @@ with st.sidebar:
 
     with st.expander("Advanced Options", expanded=st.session_state["expander_advanced_open"]):
         
-        # 1. Manage Brains
+        # 1. Manage Memory Slots
         st.caption("Manage Memory Slots")
         
         # Dynamic inputs for renaming
@@ -482,7 +507,7 @@ with st.sidebar:
         
         st.markdown("---")
         
-        # Add New Brain
+        # Add New Memory Slot
         col_new, col_add = st.columns([8, 2])
         with col_new:
             new_brain_name = st.text_input("New Brain Name", placeholder="e.g. Project X", key="new_brain_in", label_visibility="collapsed")
@@ -572,8 +597,9 @@ with st.sidebar:
     st.markdown(f"**Documents Indexed:** {system_status.get('document_count', 0)}")
     
     st.divider()
-    st.divider()
-    st.markdown("""<div style="font-size:0.7rem; color:#64748b;"><strong>NEXUS CORE v3.0</strong><br>&copy; 2025 Barnalytics</div>""", unsafe_allow_html=True)
+    
+
+    st.markdown("""<div style="font-size:0.7rem; color:#64748b;"><strong>NEXUS CORE v4.0</strong><br>&copy; 2025 Barnalytics</div>""", unsafe_allow_html=True)
 
 # --- UI LAYOUT: CHAT ---
 # Render Chat History
@@ -581,6 +607,8 @@ for message in st.session_state.messages:
     avatar_icon = NEXUS_AVATAR_URL if message["role"] == "assistant" else None
     with st.chat_message(message["role"], avatar=avatar_icon):
         st.markdown(message["content"])
+
+
 
 # Chat Input
 if not is_online:
@@ -590,7 +618,7 @@ elif not has_knowledge:
 else:
     if prompt := st.chat_input("Enter your query..."):
         
-        # Display Active Brain Name (Visual Cue)
+        # Display Active Memory Slot (Visual Cue)
         current_brain = st.session_state["slot_names"].get(st.session_state["selected_slot"], "Unknown Brain")
         st.caption(f"Answering from: **{current_brain}**")
         
@@ -603,7 +631,21 @@ else:
             
             with st.spinner("Analyzing..."):
                 try:
-                    payload = {"query": prompt, "collection_name": st.session_state["selected_slot"]}
+                    # Construct History
+                    # We skip the first message if it's the welcome message or if structure is unexpected
+                    history = []
+                    for i in range(len(st.session_state.messages) - 1):
+                        msg = st.session_state.messages[i]
+                        next_msg = st.session_state.messages[i+1]
+                        
+                        if msg["role"] == "user" and next_msg["role"] == "assistant":
+                            history.append({"user": msg["content"], "assistant": next_msg["content"]})
+                    
+                    payload = {
+                        "query": prompt, 
+                        "collection_name": st.session_state["selected_slot"],
+                        "history": history
+                    }
                     response = requests.post(f"{BACKEND_URL}/api/v1/chat", json=payload, timeout=30)
                     
                     if response.status_code == 200:
@@ -624,3 +666,15 @@ else:
                         response_placeholder.error(f"System Error {response.status_code}")
                 except Exception as e:
                     response_placeholder.error(f"Network Error: {e}")
+# Download Chat Button (Moved to End)
+if st.session_state.messages:
+    # Spacer to separate from chat
+    st.markdown("---")
+    pdf_bytes = create_pdf(st.session_state.messages)
+    # Check if download button click triggered (auto-rerun handled by streamlit)
+    st.download_button(
+        label="Download Conversation",
+        data=pdf_bytes,
+        file_name="nexus_conversation.pdf",
+        mime="application/pdf"
+    )

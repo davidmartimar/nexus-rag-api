@@ -5,14 +5,15 @@ NEXUS is a production-ready **Retrieval-Augmented Generation (RAG)** system desi
 ![Status](https://img.shields.io/badge/Status-Active-success)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 ![Python](https://img.shields.io/badge/Python-3.10-yellow)
-![Version](https://img.shields.io/badge/Version-3.0-purple)
+![Version](https://img.shields.io/badge/Version-4.0-purple)
 
-## Key Features v3.0
+## Key Features v4.0
 
-*   **Dynamic Memory Slots**: Create unlimited, isolated "Memory Slots" to manage different knowledge bases (e.g., 'Finance', 'Legal', 'Project X') without data overlap.
-*   **Import / Export**: Potable knowledge. Export any Memory Slot to a ZIP file (including vectors and source documents) and import it into any other Nexus instance or slot.
-*   **Robust Ingestion**: Supports PDF, DOCX, TXT, and MD files with intelligent chunking and vectorization using OpenAI Embeddings.
-*   **Real-Time Admin Panel**: Manage your knowledge (Delete documents, Erase full slots, Rename Memory Slots) directly from the UI.
+*   **Conversation Memory**: Remembers context from previous messages (last 5 exchanges) for natural follow-up questions.
+*   **Chat Download**: Export your complete conversation history to a PDF file.
+*   **Enhanced PDF Ingestion**: New `PyMuPDF` integration for accurate text extraction from complex, multi-column PDFs.
+*   **Dynamic Memory Slots**: Create unlimited, isolated knowledge bases without data overlap.
+*   **Import / Export**: Portable knowledge slots (Vectors + Files).
 
 ## Architecture
 
