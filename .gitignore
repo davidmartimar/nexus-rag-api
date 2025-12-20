@@ -58,3 +58,5 @@ Thumbs.db
 
 # --- Generated Assets ---
 frontend/app/nexus_logo.svg
+# --- Secrets ---
+frontend/.streamlit/secrets.toml

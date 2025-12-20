@@ -5,10 +5,13 @@ NEXUS is a production-ready **Retrieval-Augmented Generation (RAG)** system desi
 ![Status](https://img.shields.io/badge/Status-Active-success)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 ![Python](https://img.shields.io/badge/Python-3.10-yellow)
-![Version](https://img.shields.io/badge/Version-4.0-purple)
+![Version](https://img.shields.io/badge/Version-4.1-purple)
 
-## Key Features v4.0
+## Key Features v4.1
 
+*   **🛡️ Enterprise Security**: 
+    *   **Frontend Login**: Secure access gateway protected by password.
+    *   **API Key Protection**: Backend endpoints shielded by `X-NEXUS-KEY` to prevent unauthorized usage and billing abuse.
 *   **Conversation Memory**: Remembers context from previous messages (last 5 exchanges) for natural follow-up questions.
 *   **Chat Download**: Export your complete conversation history to a PDF file.
 *   **Enhanced PDF Ingestion**: New `PyMuPDF` integration for accurate text extraction from complex, multi-column PDFs.
@@ -47,7 +50,9 @@ The system is composed of two isolated microservices:
     Create a `.env` file in the root directory:
     ```env
     OPENAI_API_KEY=sk-your-key-here
+    NEXUS_API_KEY=sk-your-secure-internal-key
     ```
+    > **Note:** Access `setup_secrets.py` to configure the Frontend Login Password.
 
 3.  **Ignition**
     Launch the cluster:
@@ -56,8 +61,17 @@ The system is composed of two isolated microservices:
     ```
 
 4.  **Access**
-    *   **Frontend UI:** `http://localhost:8501`
-    *   **Backend Swagger:** `http://localhost:8000/docs`
+    *   **Frontend UI:** `http://localhost:8501` (Login Required)
+    *   **Backend Swagger:** `http://localhost:8000/docs` (API Key Required)
+
+## n8n Integration Guide
+
+To connect n8n to NEXUS, use the **HTTP Request** node:
+
+*   **Method:** `POST` / `GET`
+*   **URL:** `http://your-nexus-host:8000/api/v1/...`
+*   **Headers:**
+    *   `X-NEXUS-KEY`: `[Value of NEXUS_API_KEY]`
 
 ## Usage Guide
 

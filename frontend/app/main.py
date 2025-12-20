@@ -7,6 +7,8 @@ from fpdf import FPDF
 
 # --- CONFIGURATION ---
 BACKEND_URL = "http://backend:8000"
+NEXUS_API_KEY = os.getenv("NEXUS_API_KEY")
+API_HEADERS = {"X-NEXUS-KEY": NEXUS_API_KEY} if NEXUS_API_KEY else {}
 
 # --- ASSET PATH RESOLUTION ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,18 +35,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# --- AVATAR GENERATOR ---
-def get_nexus_avatar_b64():
-    try:
-        with open(LOGO_PATH, "r", encoding="utf-8") as f:
-            svg = f.read()
-        b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
-        return f"data:image/svg+xml;base64,{b64}"
-    except Exception:
-        return None
-
-NEXUS_AVATAR_URL = get_nexus_avatar_b64()
 
 # --- CUSTOM CSS ---
 st.markdown("""
@@ -157,6 +147,101 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- SECURITY: LOGIN SCREEN ---
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets["general"]["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.write("") # Spacer
+        st.write("") 
+        st.write("")
+        
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            st.markdown("""
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div class="nexus-logo" style="font-size: 3.5rem;"><span class="nexus-accent">ネ</span>NEXUS</div>
+                    <div class="nexus-subtitle">System Locked • Authorization Required</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown(
+                """
+                <style>
+                .stTextInput > div > div > input {
+                    background-color: #1e293b;
+                    color: #f8fafc;
+                    border: 1px solid #334155;
+                    text-align: center;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+            
+            st.text_input(
+                "Access Code", 
+                type="password", 
+                on_change=password_entered, 
+                key="password",
+                label_visibility="collapsed",
+                placeholder="Enter Access Key"
+            )
+        return False
+        
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.write("") # Spacer
+        st.write("") 
+        st.write("")
+        
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            st.markdown("""
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div class="nexus-logo" style="font-size: 3.5rem;"><span class="nexus-accent">ネ</span>NEXUS</div>
+                    <div class="nexus-subtitle" style="color: #f87171;">⛔ Access Denied</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            st.text_input(
+                "Access Code", 
+                type="password", 
+                on_change=password_entered, 
+                key="password", 
+                label_visibility="collapsed",
+                placeholder="Enter Access Key"
+            )
+        return False
+    else:
+        # Password correct.
+        return True
+
+if not check_password():
+    st.stop()
+
+
+# --- AVATAR GENERATOR ---
+def get_nexus_avatar_b64():
+    try:
+        with open(LOGO_PATH, "r", encoding="utf-8") as f:
+            svg = f.read()
+        b64 = base64.b64encode(svg.encode('utf-8')).decode("utf-8")
+        return f"data:image/svg+xml;base64,{b64}"
+    except Exception:
+        return None
+
+NEXUS_AVATAR_URL = get_nexus_avatar_b64()
+
+
+
 # --- HELPER FUNCTIONS ---
 def render_logo(size="large"):
     if size == "small":
@@ -180,7 +265,7 @@ def typewriter_effect(text, placeholder):
 def check_system_status(collection_name="nexus_slot_1"):
     try:
         params = {"collection_name": collection_name}
-        response = requests.get(f"{BACKEND_URL}/api/v1/status", params=params, timeout=2)
+        response = requests.get(f"{BACKEND_URL}/api/v1/status", params=params, headers=API_HEADERS, timeout=2)
         if response.status_code == 200:
             return response.json()
     except:
@@ -192,7 +277,7 @@ def check_system_status(collection_name="nexus_slot_1"):
 def get_uploaded_documents(collection_name="nexus_slot_1"):
     try:
         params = {"collection_name": collection_name}
-        response = requests.get(f"{BACKEND_URL}/api/v1/documents", params=params, timeout=2)
+        response = requests.get(f"{BACKEND_URL}/api/v1/documents", params=params, headers=API_HEADERS, timeout=2)
         if response.status_code == 200:
             return response.json().get("documents", [])
     except:
@@ -201,7 +286,7 @@ def get_uploaded_documents(collection_name="nexus_slot_1"):
 
 def get_slot_config():
     try:
-        response = requests.get(f"{BACKEND_URL}/api/v1/config", timeout=2)
+        response = requests.get(f"{BACKEND_URL}/api/v1/config", headers=API_HEADERS, timeout=2)
         if response.status_code == 200:
             return response.json()
     except:
@@ -210,14 +295,14 @@ def get_slot_config():
 
 def save_slot_config(config):
     try:
-        response = requests.post(f"{BACKEND_URL}/api/v1/config", json=config, timeout=5)
+        response = requests.post(f"{BACKEND_URL}/api/v1/config", json=config, headers=API_HEADERS, timeout=5)
         return response.status_code == 200
     except:
         return False
 
 def add_new_slot(name):
     try:
-        response = requests.post(f"{BACKEND_URL}/api/v1/slots", json={"name": name}, timeout=5)
+        response = requests.post(f"{BACKEND_URL}/api/v1/slots", json={"name": name}, headers=API_HEADERS, timeout=5)
         if response.status_code == 200:
             return response.json()
     except:
@@ -226,7 +311,7 @@ def add_new_slot(name):
 
 def remove_slot(slot_id):
     try:
-        response = requests.delete(f"{BACKEND_URL}/api/v1/slots/{slot_id}", timeout=5)
+        response = requests.delete(f"{BACKEND_URL}/api/v1/slots/{slot_id}", headers=API_HEADERS, timeout=5)
         return response.status_code == 200
     except:
         return False
@@ -234,7 +319,7 @@ def remove_slot(slot_id):
 def delete_document(filename, collection_name="nexus_slot_1"):
     try:
         params = {"collection_name": collection_name}
-        response = requests.delete(f"{BACKEND_URL}/api/v1/documents/{filename}", params=params, timeout=5)
+        response = requests.delete(f"{BACKEND_URL}/api/v1/documents/{filename}", params=params, headers=API_HEADERS, timeout=5)
         return response.status_code == 200
     except:
         return False
@@ -243,14 +328,14 @@ def delete_document(filename, collection_name="nexus_slot_1"):
 
 def reset_knowledge_base(collection_name):
     try:
-        response = requests.post(f"{BACKEND_URL}/api/v1/reset", json={"collection_name": collection_name}, timeout=10)
+        response = requests.post(f"{BACKEND_URL}/api/v1/reset", json={"collection_name": collection_name}, headers=API_HEADERS, timeout=10)
         return response.status_code == 200
     except:
         return False
 
 def download_backup():
     try:
-        response = requests.get(f"{BACKEND_URL}/api/v1/backup", timeout=60)
+        response = requests.get(f"{BACKEND_URL}/api/v1/backup", headers=API_HEADERS, timeout=60)
         if response.status_code == 200:
             return response.content
     except:
@@ -260,7 +345,7 @@ def download_backup():
 def restore_backup(file):
     try:
         files = {"file": ("backup.zip", file, "application/zip")}
-        response = requests.post(f"{BACKEND_URL}/api/v1/restore", files=files, timeout=60)
+        response = requests.post(f"{BACKEND_URL}/api/v1/restore", files=files, headers=API_HEADERS, timeout=60)
         return response.status_code == 200
     except:
         return False
@@ -320,7 +405,7 @@ if "slot_names" not in st.session_state:
 
 SLOTS = st.session_state["slot_names"]
 
-SLOTS = st.session_state["slot_names"]
+
 
 system_status = check_system_status(st.session_state["selected_slot"])
 is_online = system_status.get("status") == "online"
@@ -404,7 +489,7 @@ with st.sidebar:
                         files.append(("files", (file.name, file.getvalue(), file.type)))
                     
                     params = {"collection_name": st.session_state["selected_slot"]}
-                    response = requests.post(f"{BACKEND_URL}/api/v1/ingest", files=files, params=params)
+                    response = requests.post(f"{BACKEND_URL}/api/v1/ingest", files=files, params=params, headers=API_HEADERS)
                     
                     if response.status_code == 200:
                         # st.write("Debug Response:", response.json()) # DEBUG REMOVED
@@ -532,9 +617,31 @@ with st.sidebar:
         current_slot_name = st.session_state["slot_names"].get(current_slot, "Unknown")
         
         # EXPORT
-        # Use localhost for browser access
-        export_url = f"http://localhost:8000/api/v1/export?collection_name={current_slot}"
-        st.link_button(f"Export '{current_slot_name}'", export_url, help="Download vectors and files for this slot")
+        col_prep, col_dl = st.columns([1, 1])
+        with col_prep:
+            if st.button("📦 Prepare Export", help="Generate backup"):
+                with st.spinner("Archiving..."):
+                    try:
+                        params = {"collection_name": current_slot}
+                        response = requests.get(f"{BACKEND_URL}/api/v1/export", params=params, headers=API_HEADERS, timeout=120)
+                        if response.status_code == 200:
+                            st.session_state["export_data"] = response.content
+                            st.session_state["export_name"] = f"nexus_export_{current_slot}.zip"
+                            st.toast("Export Ready!", icon="✅")
+                        else:
+                            st.error("Export Failed")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
+        
+        with col_dl:
+            if "export_data" in st.session_state:
+                st.download_button(
+                    label="⬇️ Download",
+                    data=st.session_state["export_data"],
+                    file_name=st.session_state["export_name"],
+                    mime="application/zip",
+                    key="dl_btn_zip"
+                )
         
         st.divider()
         
@@ -599,7 +706,7 @@ with st.sidebar:
     st.divider()
     
 
-    st.markdown("""<div style="font-size:0.7rem; color:#64748b;"><strong>NEXUS CORE v4.0</strong><br>&copy; 2025 Barnalytics</div>""", unsafe_allow_html=True)
+    st.markdown("""<div style="font-size:0.7rem; color:#64748b;"><strong>NEXUS CORE v4.1</strong><br>&copy; 2025 Barnalytics</div>""", unsafe_allow_html=True)
 
 # --- UI LAYOUT: CHAT ---
 # Render Chat History
@@ -646,7 +753,7 @@ else:
                         "collection_name": st.session_state["selected_slot"],
                         "history": history
                     }
-                    response = requests.post(f"{BACKEND_URL}/api/v1/chat", json=payload, timeout=30)
+                    response = requests.post(f"{BACKEND_URL}/api/v1/chat", json=payload, headers=API_HEADERS, timeout=30)
                     
                     if response.status_code == 200:
                         data = response.json()
@@ -667,7 +774,7 @@ else:
                 except Exception as e:
                     response_placeholder.error(f"Network Error: {e}")
 # Download Chat Button (Moved to End)
-if st.session_state.messages:
+if len(st.session_state.messages) > 1:
     # Spacer to separate from chat
     st.markdown("---")
     pdf_bytes = create_pdf(st.session_state.messages)
