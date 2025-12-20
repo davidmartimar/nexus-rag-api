@@ -5,19 +5,25 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - nexus-chroma:/app/chroma_db
+      - nexus-uploads:/app/data_uploads
     restart: always
-    env_file:
-      - .env
+    # env_file:
+    #   - .env
 
   frontend:
     build: ./frontend
     container_name: nexus-frontend
     ports:
       - "8501:8501"
-    volumes:
-      - ./frontend:/app
+    # No volume mount for code in production (uses built image)
     depends_on:
-      - backend # Backend should start before frontend
-    env_file:
-      - .env
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:8000
+    # env_file:
+    #   - .env
+
+volumes:
+  nexus-chroma:
+  nexus-uploads:

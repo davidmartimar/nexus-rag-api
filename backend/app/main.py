@@ -33,14 +33,14 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
             detail="Could not validate credentials"
         )
 
-app = FastAPI(title="NEXUS RAG API", version="1.0.0", dependencies=[Depends(get_api_key)])
+app = FastAPI(title="NEXUS RAG API", version="1.0.0")
 
 # Include routers
-app.include_router(ingest.router, prefix="/api/v1")
-app.include_router(chat.router, prefix="/api/v1")
-app.include_router(status_api.router, prefix="/api/v1")
-app.include_router(documents.router, prefix="/api/v1")
-app.include_router(admin.router, prefix="/api/v1")
+app.include_router(ingest.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
+app.include_router(chat.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
+app.include_router(status_api.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
+app.include_router(documents.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
+app.include_router(admin.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
 
 
 @app.get("/")

@@ -1,18 +1,29 @@
 import shutil
-import threading
 import os
-import time
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+import tempfile
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, BackgroundTasks
 from fastapi.responses import FileResponse
 from app.services import rag_service
-import shutil
-import os
 
 router = APIRouter()
 
+# NOTE: All endpoints are protected by the global API Key dependency in main.py.
+# NOTE: Functions are defined as 'def' (sync) to allow FastAPI to run them in a threadpool,
+# preventing the main event loop from being blocked by heavy I/O in rag_service.
+
+def remove_file(path: str):
+    try:
+        os.remove(path)
+    except Exception as e:
+        print(f"Error deleting temp file {path}: {e}")
+
 @router.post("/reset")
-async def reset_knowledge_base(payload: dict):
+def reset_knowledge_base(payload: dict):
     collection_name = payload.get("collection_name", "nexus_slot_1")
+    # Clean input to prevent path traversal or weirdness, though underlying logic handles it.
+    if not collection_name or ".." in collection_name:
+         raise HTTPException(status_code=400, detail="Invalid collection name")
+         
     success = rag_service.reset_knowledge_base(collection_name)
     if success:
         return {"status": "success", "message": f"Knowledge base '{collection_name}' has been reset."}
@@ -20,11 +31,11 @@ async def reset_knowledge_base(payload: dict):
         raise HTTPException(status_code=500, detail="Failed to reset knowledge base.")
 
 @router.get("/config")
-async def get_config():
+def get_config():
     return rag_service.get_slot_config()
 
 @router.post("/config")
-async def update_config(config: dict):
+def update_config(config: dict):
     success = rag_service.save_slot_config(config)
     if success:
         return {"status": "success", "message": "Configuration saved."}
@@ -32,7 +43,7 @@ async def update_config(config: dict):
         raise HTTPException(status_code=500, detail="Failed to save configuration.")
 
 @router.post("/slots")
-async def create_new_slot(payload: dict):
+def create_new_slot(payload: dict):
     name = payload.get("name", "New Brain")
     slot_id = rag_service.create_slot(name)
     if slot_id:
@@ -41,7 +52,11 @@ async def create_new_slot(payload: dict):
         raise HTTPException(status_code=500, detail="Failed to create slot.")
 
 @router.delete("/slots/{slot_id}")
-async def delete_slot(slot_id: str):
+def delete_slot(slot_id: str):
+    # Basic validation
+    if not slot_id.startswith("nexus_slot_"):
+         raise HTTPException(status_code=400, detail="Invalid slot ID format.")
+         
     success = rag_service.delete_slot(slot_id)
     if success:
         return {"status": "success", "message": f"Slot {slot_id} deleted."}
@@ -49,30 +64,43 @@ async def delete_slot(slot_id: str):
         raise HTTPException(status_code=500, detail="Failed to delete slot.")
 
 @router.get("/export")
-async def export_slot(collection_name: str = "nexus_slot_1"):
+def export_slot(background_tasks: BackgroundTasks, collection_name: str = "nexus_slot_1"):
     try:
         zip_path = rag_service.export_slot_data(collection_name)
         if not zip_path:
             raise HTTPException(status_code=500, detail="Export failed")
+            
+        # Schedule file deletion after response is sent
+        background_tasks.add_task(remove_file, zip_path)
             
         return FileResponse(zip_path, filename=f"nexus_export_{collection_name}.zip", media_type="application/zip")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/import")
-async def import_slot(collection_name: str = Form(...), file: UploadFile = File(...)):
+def import_slot(collection_name: str = Form(...), file: UploadFile = File(...)):
+    # Use tempfile to avoid collisions and ensure cleanup
+    temp_path = None
     try:
-        temp_file = f"/app/temp_import_{file.filename}"
-        with open(temp_file, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # Create a temp file. delete=False because we need to close it and let rag_service open it.
+        # We manually unlink later.
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file.filename}") as tmp:
+            shutil.copyfileobj(file.file, tmp)
+            temp_path = tmp.name
         
-        success = rag_service.import_slot_data(collection_name, temp_file)
-        
-        os.remove(temp_file)
+        success = rag_service.import_slot_data(collection_name, temp_path)
         
         if success:
             return {"status": "success", "message": f"Successfully imported knowledge into {collection_name}"}
         else:
             raise HTTPException(status_code=500, detail="Import failed internally.")
+            
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        # Always clean up the temp file
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass # logging.warning("Could not delete temp file")

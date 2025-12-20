@@ -6,7 +6,7 @@ import os
 from fpdf import FPDF
 
 # --- CONFIGURATION ---
-BACKEND_URL = "http://backend:8000"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 NEXUS_API_KEY = os.getenv("NEXUS_API_KEY")
 API_HEADERS = {"X-NEXUS-KEY": NEXUS_API_KEY} if NEXUS_API_KEY else {}
 
@@ -153,7 +153,21 @@ def check_password():
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        if st.session_state["password"] == st.secrets["general"]["password"]:
+        # CLOUD-NATIVE AUTH: Priority to Environment Variables
+        env_password = os.getenv("NEXUS_FRONTEND_PASSWORD")
+        
+        # Local Fallback: secrets.toml (for dev)
+        if not env_password:
+            try:
+                env_password = st.secrets["general"]["password"]
+            except (FileNotFoundError, KeyError):
+                pass
+        
+        if not env_password:
+             st.error("🚨 Configuration Error: NEXUS_FRONTEND_PASSWORD not set in Environment or secrets.toml")
+             return
+
+        if st.session_state["password"] == env_password:
             st.session_state["password_correct"] = True
             del st.session_state["password"]  # don't store password
         else:

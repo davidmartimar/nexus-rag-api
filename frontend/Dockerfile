@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 8501
 
 # Command to run Streamlit
-CMD ["streamlit", "run", "app/main.py", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "app/main.py", "--server.address=0.0.0.0", "--server.fileWatcherType=none"]
