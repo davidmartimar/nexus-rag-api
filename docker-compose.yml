@@ -38,6 +38,7 @@ services:
       - NEXUS_INTERNAL_API_URL=http://backend:8000
       - NEXUS_API_KEY=${NEXUS_API_KEY}
       - GENERIC_TIMEZONE=Europe/Madrid
+      - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE}
 
 volumes:
   nexus-chroma:
