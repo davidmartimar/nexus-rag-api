@@ -39,3 +39,8 @@ services:
       - NEXUS_API_KEY=${NEXUS_API_KEY}
       - GENERIC_TIMEZONE=Europe/Madrid
       - N8N_SECURE_COOKIE=false
+
+volumes:
+  nexus-chroma:
+  nexus-uploads:
+  nexus-n8n:
