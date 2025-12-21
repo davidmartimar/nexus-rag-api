@@ -17,14 +17,29 @@ services:
     container_name: nexus-frontend
     ports:
       - "8501:8501"
-    # No volume mount for code in production (uses built image)
     depends_on:
       - backend
+    restart: always
     environment:
       - BACKEND_URL=http://backend:8000
       - NEXUS_API_KEY=${NEXUS_API_KEY}
       - NEXUS_FRONTEND_PASSWORD=${NEXUS_FRONTEND_PASSWORD}
 
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: nexus-n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - nexus-n8n:/home/node/.n8n
+    restart: always
+    environment:
+      - WEBHOOK_URL=http://${DOMAIN}:5678/
+      - NEXUS_INTERNAL_API_URL=http://backend:8000
+      - NEXUS_API_KEY=${NEXUS_API_KEY}
+      - GENERIC_TIMEZONE=Europe/Madrid
+
 volumes:
   nexus-chroma:
   nexus-uploads:
+  nexus-n8n:
