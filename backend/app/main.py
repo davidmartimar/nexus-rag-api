@@ -42,6 +42,9 @@ app.include_router(status_api.router, prefix="/api/v1", dependencies=[Depends(ge
 app.include_router(documents.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
 app.include_router(admin.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
 
+from app.api import evaluation
+app.include_router(evaluation.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
+
 
 @app.get("/")
 def read_root():

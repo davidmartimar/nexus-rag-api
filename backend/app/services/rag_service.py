@@ -4,10 +4,14 @@ import zipfile
 import json
 import uuid
 import openai
-from langchain.document_loaders import PyMuPDFLoader, Docx2txtLoader, TextLoader
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from langchain_community.document_loaders import PyMuPDFLoader, Docx2txtLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
 from langchain.docstore.document import Document
 
 # Configuration
@@ -19,9 +23,13 @@ def transcribe_audio(file_path: str) -> str:
     Transcribes audio using OpenAI Whisper API.
     """
     try:
+        client = openai.OpenAI()
         with open(file_path, "rb") as audio_file:
-            transcript = openai.Audio.transcribe("whisper-1", audio_file)
-        return transcript["text"]
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1", 
+                file=audio_file
+            )
+        return transcript.text
     except Exception as e:
         print(f"Error transcribing audio: {e}")
         raise e
