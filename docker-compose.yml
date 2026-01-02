@@ -25,20 +25,23 @@ services:
       - NEXUS_API_KEY=${NEXUS_API_KEY}
       - NEXUS_FRONTEND_PASSWORD=${NEXUS_FRONTEND_PASSWORD}
 
-n8n:
-  image: n8nio/n8n:latest
-  container_name: nexus-n8n
-  ports:
-    - "5678:5678"
-  volumes:
-    - nexus-n8n:/home/node/.n8n
-  restart: always
-  environment:
-    - WEBHOOK_URL=${PUBLIC_N8N_URL}
-    - NEXUS_INTERNAL_API_URL=http://backend:8000
-    - NEXUS_API_KEY=${NEXUS_API_KEY}
-    - GENERIC_TIMEZONE=Europe/Madrid
-    - N8N_SECURE_COOKIE=true
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: nexus-n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - nexus-n8n:/home/node/.n8n
+    restart: always
+    environment:
+      # Webhook URL
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      # Security
+      - N8N_SECURE_COOKIE=true
+      # Internal variables
+      - NEXUS_INTERNAL_API_URL=http://backend:8000
+      - NEXUS_API_KEY=${NEXUS_API_KEY}
+      - GENERIC_TIMEZONE=Europe/Madrid
 
 volumes:
   nexus-chroma:
