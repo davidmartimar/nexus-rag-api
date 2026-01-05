@@ -7,10 +7,13 @@ services:
     volumes:
       - nexus-chroma:/app/chroma_db
       - nexus-uploads:/app/data_uploads
+      - nexus-data:/app/data
     restart: always
     environment:
       - NEXUS_API_KEY=${NEXUS_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - DB_PATH=/app/data/nexus.db
 
   frontend:
     build: ./frontend
@@ -47,3 +50,4 @@ volumes:
   nexus-chroma:
   nexus-uploads:
   nexus-n8n:
+  nexus-data:

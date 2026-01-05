@@ -2,7 +2,12 @@
 FROM python:3.10-slim
 
 # Set the working directory in the container
+# Set the working directory in the container
 WORKDIR /app
+
+# Create directory for persistent data and ensure permissions for SQLite
+RUN mkdir -p /app/data && chmod 777 /app/data
+VOLUME ["/app/data"]
 
 # Copy the requirements file into the container
 COPY requirements.txt .

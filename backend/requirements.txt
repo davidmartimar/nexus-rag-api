@@ -13,3 +13,5 @@ pymupdf==1.23.6
 ragas==0.0.22
 datasets==2.16.1
 llama-index==0.9.48
+cryptography
+aiosqlite

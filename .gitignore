@@ -26,6 +26,14 @@ backend/chroma_db_old/
 backend/chroma_db_temp/
 backend/data_uploads/
 backend/slots.json
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+data/
+backend/data/
+app/data/
 
 # --- Temporary & Backup Files ---
 *.zip
