@@ -33,7 +33,17 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
             detail="Could not validate credentials"
         )
 
-app = FastAPI(title="NEXUS RAG API", version="1.0.0")
+from contextlib import asynccontextmanager
+from app.core.database import init_db
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Create tables
+    await init_db()
+    yield
+    # Shutdown: Clean up if needed (nothing for now)
+
+app = FastAPI(title="NEXUS RAG API", version="1.0.0", lifespan=lifespan)
 
 # Include routers
 app.include_router(ingest.router, prefix="/api/v1", dependencies=[Depends(get_api_key)])
