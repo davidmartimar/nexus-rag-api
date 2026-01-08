@@ -20,7 +20,9 @@ async def init_db():
     """Initializes the database with required tables and indexes."""
     logger.info(f"Initializing database at {DB_PATH}")
     # Ensure directory exists (critical for usage in /app/data if not pre-created)
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     
     async with aiosqlite.connect(DB_PATH) as db:
         # 1. Chat Sessions (Volatile)
