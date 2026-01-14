@@ -147,16 +147,21 @@ st.markdown("""
 
         /* CHAT INPUT CONTAINER */
         /* Force the bottom container to match background and handle spacing */
-        section[data-testid="stBottom"] {
+        /* FORCE BOTTOM CONTAINER FULL WIDTH */
+        div[data-testid="stBottom"], section[data-testid="stBottom"] {
             position: fixed;
             bottom: 0;
             left: 0;
-            width: 100%;
-            z-index: 999;
+            right: 0;
+            width: 100vw;
+            z-index: 9999;
             background-color: #0f172a !important;
+            padding: 1rem 0;
         }
-        section[data-testid="stBottom"] > div {
+        
+        div[data-testid="stBottom"] > div, section[data-testid="stBottom"] > div {
              max-width: 100% !important;
+             width: 100% !important;
              padding-left: 0 !important;
              padding-right: 0 !important;
         }
