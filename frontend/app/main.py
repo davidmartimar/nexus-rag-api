@@ -147,38 +147,48 @@ st.markdown("""
 
         /* CHAT INPUT CONTAINER */
         /* Fix: Force transparent background on bottom container to remove 'black box' artifact */
-        /* CHAT INPUT CONTAINER - FINAL FIX */
-        /* 1. Hide Streamlit Footer & Header Decoration to prevent overlaps */
-        footer { visibility: hidden; height: 0px; }
-        header { visibility: hidden; } 
+        /* CHAT INPUT CONTAINER - NUCLEAR FIX */
+        /* 1. COMPLETELY REMOVE Footer & Header from Layout Flow */
+        footer, header { 
+            display: none !important; 
+            visibility: hidden !important; 
+        }
         
-        /* 2. Force transparency on the main bottom container and children */
+        /* 2. MAIN BOTTOM CONTAINER: Force Transparency & Allow Overflow */
         div[data-testid="stBottom"], 
-        div[data-testid="stBottom"] > div,
         section[data-testid="stBottom"] {
             background-color: transparent !important;
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
             backdrop-filter: none !important;
+            overflow: visible !important; /* Critical: Allow input to float out if needed */
+        }
+        
+        /* 3. IMMEDIATE CHILDREN: Ensure they don't paint a background */
+        div[data-testid="stBottom"] > div {
+             background-color: transparent !important;
+             background: transparent !important;
+             border: none !important;
         }
 
-        /* 3. Input Container - Remove backgrounds and ensure spacing */
+        /* 4. CHAT INPUT WRAPPER: Position & Z-Index */
         .stChatInputContainer {
             background-color: transparent !important;
-            padding-bottom: 1rem !important;
-            margin-bottom: 1rem !important;
+            padding-bottom: 1.5rem !important; /* Give it space from bottom */
             max-width: 50rem;
             margin: 0 auto;
+            position: relative !important;
+            z-index: 99999 !important;
         }
 
-        /* 4. Style the Input Box explicitly */
+        /* 5. TEXT AREA: styles */
         .stChatInputContainer textarea {
             background-color: #1e293b !important; 
             border: 1px solid #334155 !important;
             color: #f1f5f9 !important;
             border-radius: 12px !important;
-            z-index: 99999 !important; /* Ensure it stays on top */
+            caret-color: #6366f1 !important;
         }
     </style>
 """, unsafe_allow_html=True)
