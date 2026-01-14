@@ -146,9 +146,14 @@ st.markdown("""
         }
 
         /* CHAT INPUT CONTAINER */
-        /* Reverted to defaults as requested */
+        /* Reverted to defaults but keeping footer hidden */
         footer { visibility: hidden; }
         
+        /* Remove the gray background from the bottom container */
+        div[data-testid="stBottom"] {
+            background-color: transparent !important;
+        }
+
         .stChatInputContainer {
             padding-bottom: 20px;
         }
