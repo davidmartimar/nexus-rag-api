@@ -148,6 +148,11 @@ st.markdown("""
         /* CHAT INPUT CONTAINER */
         /* Force the bottom container to match background and handle spacing */
         section[data-testid="stBottom"] {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 999;
             background-color: #0f172a !important;
         }
         section[data-testid="stBottom"] > div {

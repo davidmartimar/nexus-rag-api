@@ -4,5 +4,3 @@ python-dotenv==1.0.0
 fpdf==1.7.2
 watchdog
 pyarrow
-aiosqlite
-cryptography
