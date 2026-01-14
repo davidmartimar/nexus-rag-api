@@ -159,7 +159,9 @@ st.markdown("""
             box-shadow: none !important;
         }
 
+        /* Essential: Make the wrapper distinct from the input box transparent */
         .stChatInputContainer {
+            background-color: transparent !important;
             padding-bottom: 20px;
         }
     </style>
