@@ -155,8 +155,7 @@ st.markdown("""
             right: 0;
             width: 100vw;
             z-index: 9999;
-            background-color: #0f172a !important;
-            padding: 1rem 0;
+            background-color: transparent !important;
         }
         
         div[data-testid="stBottom"] > div, section[data-testid="stBottom"] > div {
