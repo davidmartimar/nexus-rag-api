@@ -147,8 +147,12 @@ st.markdown("""
 
         /* CHAT INPUT CONTAINER */
         /* Fix: Force transparent background on bottom container to remove 'black box' artifact */
-        /* CHAT INPUT CONTAINER - AGGRESSIVE FIX */
-        /* 1. Force transparency on the main bottom container and its immediate children */
+        /* CHAT INPUT CONTAINER - FINAL FIX */
+        /* 1. Hide Streamlit Footer & Header Decoration to prevent overlaps */
+        footer { visibility: hidden; height: 0px; }
+        header { visibility: hidden; } 
+        
+        /* 2. Force transparency on the main bottom container and children */
         div[data-testid="stBottom"], 
         div[data-testid="stBottom"] > div,
         section[data-testid="stBottom"] {
@@ -156,22 +160,25 @@ st.markdown("""
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            backdrop-filter: none !important;
         }
 
-        /* 2. Ensure the structural container for the input is also transparent */
+        /* 3. Input Container - Remove backgrounds and ensure spacing */
         .stChatInputContainer {
             background-color: transparent !important;
-            padding-bottom: 20px;
+            padding-bottom: 1rem !important;
+            margin-bottom: 1rem !important;
             max-width: 50rem;
             margin: 0 auto;
         }
 
-        /* 3. Style ONLY the actual text input box */
+        /* 4. Style the Input Box explicitly */
         .stChatInputContainer textarea {
             background-color: #1e293b !important; 
             border: 1px solid #334155 !important;
             color: #f1f5f9 !important;
             border-radius: 12px !important;
+            z-index: 99999 !important; /* Ensure it stays on top */
         }
     </style>
 """, unsafe_allow_html=True)
