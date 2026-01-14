@@ -147,21 +147,31 @@ st.markdown("""
 
         /* CHAT INPUT CONTAINER */
         /* Fix: Force transparent background on bottom container to remove 'black box' artifact */
-        div[data-testid="stBottom"] {
+        /* CHAT INPUT CONTAINER - AGGRESSIVE FIX */
+        /* 1. Force transparency on the main bottom container and its immediate children */
+        div[data-testid="stBottom"], 
+        div[data-testid="stBottom"] > div,
+        section[data-testid="stBottom"] {
             background-color: transparent !important;
             background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
-        /* Default centered layout for input */
+        /* 2. Ensure the structural container for the input is also transparent */
         .stChatInputContainer {
+            background-color: transparent !important;
             padding-bottom: 20px;
             max-width: 50rem;
             margin: 0 auto;
         }
+
+        /* 3. Style ONLY the actual text input box */
         .stChatInputContainer textarea {
-            background-color: #1e293b; 
-            border: 1px solid #334155;
-            color: #f1f5f9;
+            background-color: #1e293b !important; 
+            border: 1px solid #334155 !important;
+            color: #f1f5f9 !important;
+            border-radius: 12px !important;
         }
     </style>
 """, unsafe_allow_html=True)
