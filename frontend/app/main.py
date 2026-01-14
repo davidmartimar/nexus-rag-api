@@ -164,6 +164,14 @@ st.markdown("""
             background-color: transparent !important;
             padding-bottom: 20px;
         }
+
+        /* Style the actual input box to make it distinct */
+        .stChatInputContainer textarea {
+            background-color: #1e293b !important;
+            border: 1px solid #334155 !important;
+            color: #f8fafc !important;
+            border-radius: 12px !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
