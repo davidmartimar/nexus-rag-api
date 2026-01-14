@@ -147,12 +147,21 @@ st.markdown("""
 
         /* CHAT INPUT CONTAINER */
         /* Force the bottom container to match background and handle spacing */
+        section[data-testid="stBottom"] {
+            background-color: #0f172a !important;
+        }
         section[data-testid="stBottom"] > div {
-            background-color: #0f172a;
-            padding-bottom: 1rem;
+             max-width: 100% !important;
+             padding-left: 0 !important;
+             padding-right: 0 !important;
         }
         
         /* Make the input box stand out against the dark background */
+        .stChatInputContainer {
+            padding-bottom: 20px;
+            max-width: 60rem; /* Keep existing width for the text box itself */
+            margin: 0 auto;   /* Center it */
+        }
         .stChatInputContainer textarea {
             background-color: #1e293b; 
             border: 1px solid #334155;
