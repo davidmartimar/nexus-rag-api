@@ -146,7 +146,13 @@ st.markdown("""
         }
 
         /* CHAT INPUT CONTAINER */
-        /* Reverted to default centered layout */
+        /* Fix: Force transparent background on bottom container to remove 'black box' artifact */
+        div[data-testid="stBottom"] {
+            background-color: transparent !important;
+            background: transparent !important;
+        }
+
+        /* Default centered layout for input */
         .stChatInputContainer {
             padding-bottom: 20px;
             max-width: 50rem;
