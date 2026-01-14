@@ -21,3 +21,4 @@ ragas
 datasets
 llama-index
 tiktoken
+# CACHE BUSTER: 2026-01-14-FORCE-REBUILD-V2
