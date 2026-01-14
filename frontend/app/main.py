@@ -146,47 +146,11 @@ st.markdown("""
         }
 
         /* CHAT INPUT CONTAINER */
-        /* Fix: Force transparent background on bottom container to remove 'black box' artifact */
-        /* CHAT INPUT CONTAINER - CAMOUFLAGE FIX */
-        /* 1. Hide Header & Footer Decoration */
-        footer { visibility: hidden; height: 0px; }
-        header { visibility: hidden; } 
+        /* Reverted to defaults as requested */
+        footer { visibility: hidden; }
         
-        /* 2. MAIN BOTTOM CONTAINER: Full Width & Match App Background */
-        /* Instead of transparent, we paint it the same color as the app (#0f172a) */
-        /* This "extends" the box to the edges as requested, hiding the glitchy artifact */
-        div[data-testid="stBottom"], 
-        section[data-testid="stBottom"] {
-            background-color: #0f172a !important; /* MATCH APP BACKGROUND */
-            background: #0f172a !important;
-            border: none !important;
-            width: 100% !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            position: fixed !important;
-            z-index: 9998 !important; /* High, but below input */
-        }
-
-        /* 3. CENTERED INPUT CONTAINER */
-        /* Float the input on top of the "camouflaged" footer */
         .stChatInputContainer {
-            background-color: transparent !important;
-            padding-bottom: 2rem !important;
-            max-width: 50rem;
-            margin: 0 auto;
-            position: relative !important;
-            z-index: 99999 !important; /* Topmost */
-        }
-
-        /* 4. TEXT AREA STYLING */
-        /* Keep the input distinct */
-        .stChatInputContainer textarea {
-            background-color: #1e293b !important; 
-            border: 1px solid #334155 !important;
-            color: #f1f5f9 !important;
-            border-radius: 12px !important;
-            caret-color: #6366f1 !important;
+            padding-bottom: 20px;
         }
     </style>
 """, unsafe_allow_html=True)
