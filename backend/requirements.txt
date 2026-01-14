@@ -1,18 +1,23 @@
 fastapi
 uvicorn
-langchain>=0.1.0
-langchain-community>=0.0.10
+python-dotenv
+openai
+# --- LangChain Ecosystem (Force Reinstall) ---
+langchain
+langchain-community
+langchain-core
 langchain-openai
 langchain-text-splitters
+# --- Database & Vector ---
 chromadb
-openai
-python-dotenv
+aiosqlite
+cryptography
+# --- Utilities ---
 pypdf
-python-multipart
-docx2txt
 pymupdf
+docx2txt
+python-multipart
 ragas
 datasets
 llama-index
-cryptography
-aiosqlite
+tiktoken
