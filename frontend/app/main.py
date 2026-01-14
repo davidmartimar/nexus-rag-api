@@ -146,30 +146,11 @@ st.markdown("""
         }
 
         /* CHAT INPUT CONTAINER */
-        /* Force the bottom container to match background and handle spacing */
-        /* FORCE BOTTOM CONTAINER FULL WIDTH */
-        div[data-testid="stBottom"], section[data-testid="stBottom"] {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100vw;
-            z-index: 9999;
-            background-color: transparent !important;
-        }
-        
-        div[data-testid="stBottom"] > div, section[data-testid="stBottom"] > div {
-             max-width: 100% !important;
-             width: 100% !important;
-             padding-left: 0 !important;
-             padding-right: 0 !important;
-        }
-        
-        /* Make the input box stand out against the dark background */
+        /* Reverted to default centered layout */
         .stChatInputContainer {
             padding-bottom: 20px;
-            max-width: 60rem; /* Keep existing width for the text box itself */
-            margin: 0 auto;   /* Center it */
+            max-width: 50rem;
+            margin: 0 auto;
         }
         .stChatInputContainer textarea {
             background-color: #1e293b; 
