@@ -147,42 +147,40 @@ st.markdown("""
 
         /* CHAT INPUT CONTAINER */
         /* Fix: Force transparent background on bottom container to remove 'black box' artifact */
-        /* CHAT INPUT CONTAINER - NUCLEAR FIX */
-        /* 1. COMPLETELY REMOVE Footer & Header from Layout Flow */
-        footer, header { 
-            display: none !important; 
-            visibility: hidden !important; 
-        }
+        /* CHAT INPUT CONTAINER - CAMOUFLAGE FIX */
+        /* 1. Hide Header & Footer Decoration */
+        footer { visibility: hidden; height: 0px; }
+        header { visibility: hidden; } 
         
-        /* 2. MAIN BOTTOM CONTAINER: Force Transparency & Allow Overflow */
+        /* 2. MAIN BOTTOM CONTAINER: Full Width & Match App Background */
+        /* Instead of transparent, we paint it the same color as the app (#0f172a) */
+        /* This "extends" the box to the edges as requested, hiding the glitchy artifact */
         div[data-testid="stBottom"], 
         section[data-testid="stBottom"] {
-            background-color: transparent !important;
-            background: transparent !important;
+            background-color: #0f172a !important; /* MATCH APP BACKGROUND */
+            background: #0f172a !important;
             border: none !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
-            overflow: visible !important; /* Critical: Allow input to float out if needed */
-        }
-        
-        /* 3. IMMEDIATE CHILDREN: Ensure they don't paint a background */
-        div[data-testid="stBottom"] > div {
-             background-color: transparent !important;
-             background: transparent !important;
-             border: none !important;
+            width: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            position: fixed !important;
+            z-index: 9998 !important; /* High, but below input */
         }
 
-        /* 4. CHAT INPUT WRAPPER: Position & Z-Index */
+        /* 3. CENTERED INPUT CONTAINER */
+        /* Float the input on top of the "camouflaged" footer */
         .stChatInputContainer {
             background-color: transparent !important;
-            padding-bottom: 1.5rem !important; /* Give it space from bottom */
+            padding-bottom: 2rem !important;
             max-width: 50rem;
             margin: 0 auto;
             position: relative !important;
-            z-index: 99999 !important;
+            z-index: 99999 !important; /* Topmost */
         }
 
-        /* 5. TEXT AREA: styles */
+        /* 4. TEXT AREA STYLING */
+        /* Keep the input distinct */
         .stChatInputContainer textarea {
             background-color: #1e293b !important; 
             border: 1px solid #334155 !important;
