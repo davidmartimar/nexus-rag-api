@@ -149,9 +149,14 @@ st.markdown("""
         /* Reverted to defaults but keeping footer hidden */
         footer { visibility: hidden; }
         
-        /* Remove the gray background from the bottom container */
-        div[data-testid="stBottom"] {
+        /* Remove the gray background/shadow from the bottom container AND its children */
+        div[data-testid="stBottom"],
+        div[data-testid="stBottom"] > div,
+        section[data-testid="stBottom"] {
             background-color: transparent !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
         .stChatInputContainer {
