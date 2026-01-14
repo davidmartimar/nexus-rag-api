@@ -14,6 +14,7 @@ class UniversalLead(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
+    collection_name: Optional[str] = "nexus_slot_1"
     history: List[dict] = []
     # Nuevo campo para contexto dinámico
     business_context: Optional[str] = Field(

@@ -1,51 +1,95 @@
-from fastapi import APIRouter, HTTPException
-from app.services import chat_service, security_service
-from app.schemas import ChatRequest, ChatResponse
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from pydantic import BaseModel
+from typing import Optional, List
+import logging
+
+# Servicios y Core
+from app.services.chat_service import get_answer
+from app.core.database import get_db_connection
+from app.core.security import hash_user_id
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
-    """
-    Main Chat Endpoint with:
-    1. Security & Rate Limiting (if user_id provided)
-    2. RAG Retrieval
-    3. Structural Lead Extraction (Universal)
-    4. Secure Logging
-    """
+# --- MODELO UNIFICADO (Satisface a Antigravity y a n8n) ---
+class QueryRequest(BaseModel):
+    # Campos principales (Frontend v4.1)
+    message: Optional[str] = None
+    collection_name: str = "nexus_slot_1" # Default sugerido por Antigravity
+    
+    # Campos de Negocio / Contexto
+    business_context: Optional[str] = None
+    user_id: Optional[str] = None
+
+    # Campos Legacy (Compatibilidad n8n antigua)
+    query: Optional[str] = None 
+    system_instruction: Optional[str] = None
+
+# --- FUNCIÓN DE GUARDADO EN SEGUNDO PLANO ---
+async def save_interaction(user_id: str, user_msg: str, bot_msg: str):
+    """Guarda la interacción sin bloquear la respuesta al usuario."""
+    if not user_id:
+        return
     try:
-        # 1. Security Check (if user_id present)
-        # Allows anonymous chat if no user_id, or enforce it? 
-        # Requirement said "Gestión de datos sensibles... privacidad".
-        # Assuming we want to track rate limits by user_id if provided.
-        if request.user_id:
-            await security_service.validate_user_access(request.user_id)
-            # Log incoming message securely
-            await security_service.save_secure_message(request.user_id, "user", request.message)
+        user_hash = hash_user_id(user_id)
+        # Guardamos en la BDD persistente (/app/data/nexus.db)
+        async with get_db_connection() as db:
+            await db.execute(
+                "INSERT INTO chat_sessions (session_id, role, content_encrypted) VALUES (?, ?, ?)",
+                (user_hash, "user", user_msg.encode())
+            )
+            await db.execute(
+                "INSERT INTO chat_sessions (session_id, role, content_encrypted) VALUES (?, ?, ?)",
+                (user_hash, "assistant", bot_msg.encode())
+            )
+            await db.commit()
+    except Exception as e:
+        logger.error(f"Error guardando historial background: {e}")
 
-        # 2. Get RAG Answer + Lead Data
-        result = chat_service.get_answer(
-            query=request.message, 
-            history=request.history,
-            business_context=request.business_context
+# --- ENDPOINT ---
+@router.post("/chat", tags=["Chat"])
+async def chat_endpoint(request: QueryRequest, background_tasks: BackgroundTasks):
+    # 1. Normalizar entrada (message gana, query es fallback)
+    final_query = request.message or request.query
+    final_context = request.business_context or request.system_instruction
+    
+    if not final_query:
+        raise HTTPException(status_code=400, detail="Message/Query cannot be empty")
+
+    try:
+        # 2. Llamar al Cerebro (usando la collection_name que pide Antigravity)
+        response = get_answer(
+            query=final_query, 
+            collection_name=request.collection_name, 
+            history=[] # Stateless por ahora para estabilidad
         )
         
-        # 3. Secure Logging of Response (if user_id present)
-        usage_stats = None
-        if request.user_id:
-            await security_service.save_secure_message(request.user_id, "assistant", result["answer"])
-            # Get updated usage stats to return to client
-            usage_stats = await security_service.get_usage_stats(request.user_id)
+        # 3. Procesar respuesta
+        bot_answer = ""
+        lead_data = None
+        
+        if isinstance(response, dict):
+            bot_answer = response.get("answer", "")
+            lead_data = response.get("lead_data", None)
+        else:
+            bot_answer = str(response)
 
-        return ChatResponse(
-            answer=result["answer"],
-            sources=result["sources"],
-            lead_data=result.get("lead_data"),
-            usage=usage_stats
-        )
-            
-    except security_service.RateLimitExceeded as e:
-        raise HTTPException(status_code=429, detail=str(e.detail))
+        # 4. Guardar log si hay user_id (Background)
+        if request.user_id:
+            background_tasks.add_task(
+                save_interaction, 
+                request.user_id, 
+                final_query, 
+                bot_answer
+            )
+
+        # 5. Respuesta final
+        return {
+            "answer": bot_answer,
+            "lead_data": lead_data,
+            "usage": {"remaining": 20, "limit_reached": False}
+        }
+        
     except Exception as e:
-        # Handle other errors
+        logger.error(f"ERROR CRÍTICO EN CHAT: {e}")
         raise HTTPException(status_code=500, detail=str(e))

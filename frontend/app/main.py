@@ -144,6 +144,20 @@ st.markdown("""
             background-color: #4338ca;
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
+
+        /* CHAT INPUT CONTAINER */
+        /* Force the bottom container to match background and handle spacing */
+        section[data-testid="stBottom"] > div {
+            background-color: #0f172a;
+            padding-bottom: 1rem;
+        }
+        
+        /* Make the input box stand out against the dark background */
+        .stChatInputContainer textarea {
+            background-color: #1e293b; 
+            border: 1px solid #334155;
+            color: #f1f5f9;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -763,7 +777,7 @@ else:
                             history.append({"user": msg["content"], "assistant": next_msg["content"]})
                     
                     payload = {
-                        "query": prompt, 
+                        "message": prompt, 
                         "collection_name": st.session_state["selected_slot"],
                         "history": history
                     }
