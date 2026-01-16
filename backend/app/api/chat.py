@@ -5,8 +5,6 @@ import logging
 
 # Servicios y Core
 from app.services.chat_service import get_answer
-from app.core.database import get_db_connection
-from app.core.security import hash_user_id
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -25,27 +23,7 @@ class QueryRequest(BaseModel):
     query: Optional[str] = None 
     system_instruction: Optional[str] = None
 
-# --- FUNCIÓN DE GUARDADO EN SEGUNDO PLANO ---
-async def save_interaction(user_id: str, user_msg: str, bot_msg: str):
-    """Guarda la interacción sin bloquear la respuesta al usuario."""
-    if not user_id:
-        return
-    try:
-        user_hash = hash_user_id(user_id)
-        # Guardamos en la BDD persistente (/app/data/nexus.db)
-        async with get_db_connection() as db:
-            await db.execute(
-                "INSERT INTO chat_sessions (session_id, role, content_encrypted) VALUES (?, ?, ?)",
-                (user_hash, "user", user_msg.encode())
-            )
-            await db.execute(
-                "INSERT INTO chat_sessions (session_id, role, content_encrypted) VALUES (?, ?, ?)",
-                (user_hash, "assistant", bot_msg.encode())
-            )
-            await db.commit()
-    except Exception as e:
-        logger.error(f"Error guardando historial background: {e}")
-
+# --- ENDPOINT ---
 # --- ENDPOINT ---
 @router.post("/chat", tags=["Chat"])
 async def chat_endpoint(request: QueryRequest, background_tasks: BackgroundTasks):
@@ -74,16 +52,7 @@ async def chat_endpoint(request: QueryRequest, background_tasks: BackgroundTasks
         else:
             bot_answer = str(response)
 
-        # 4. Guardar log si hay user_id (Background)
-        if request.user_id:
-            background_tasks.add_task(
-                save_interaction, 
-                request.user_id, 
-                final_query, 
-                bot_answer
-            )
-
-        # 5. Respuesta final
+        # 4. Respuesta final
         return {
             "answer": bot_answer,
             "lead_data": lead_data,
