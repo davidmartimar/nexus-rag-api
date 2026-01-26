@@ -63,7 +63,7 @@ def get_answer(query: str, collection_name: str = DEFAULT_COLLECTION_NAME, histo
         # 5. Ask the question (RAG)
         result = qa_chain({"question": query})
         answer = result["answer"]
-        sources = [doc.page_content for doc in result["source_documents"]]
+        sources = [{"text": doc.page_content, "metadata": doc.metadata} for doc in result["source_documents"]]
 
         # 6. Extract Lead Data (Multi-Tenant / Business Agnostic)
         lead_data = None

@@ -105,7 +105,10 @@ nexus-rag-api/
 ├── docker-compose.yml  # Orchestration & Volumes
 └── README.md
 
-## License
+## Author & License
 
-This project is open-source and available under the [MIT License](LICENSE).
-Built by **David Martínez Martín** (davidmartimar).
+**David Martínez** - *AI Automation Engineer*
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/davidmartimar)
+[![GitHub](https://img.shields.io/badge/GitHub-davidmartimar-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/davidmartimar)
+
+Built for Barnalytics. Open source under the MIT License.

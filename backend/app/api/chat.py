@@ -26,7 +26,7 @@ class QueryRequest(BaseModel):
 # --- ENDPOINT ---
 # --- ENDPOINT ---
 @router.post("/chat", tags=["Chat"])
-async def chat_endpoint(request: QueryRequest, background_tasks: BackgroundTasks):
+def chat_endpoint(request: QueryRequest, background_tasks: BackgroundTasks):
     # 1. Normalizar entrada (message gana, query es fallback)
     final_query = request.message or request.query
     final_context = request.business_context or request.system_instruction
@@ -55,6 +55,7 @@ async def chat_endpoint(request: QueryRequest, background_tasks: BackgroundTasks
         # 4. Respuesta final
         return {
             "answer": bot_answer,
+            "sources": response.get("sources", []),
             "lead_data": lead_data,
             "usage": {"remaining": 20, "limit_reached": False}
         }

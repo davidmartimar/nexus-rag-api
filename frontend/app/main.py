@@ -304,6 +304,7 @@ def typewriter_effect(text, placeholder):
         time.sleep(0.02)
     placeholder.markdown(displayed_text)
 
+@st.cache_data(ttl=5)
 def check_system_status(collection_name="nexus_slot_1"):
     try:
         params = {"collection_name": collection_name}
@@ -314,9 +315,9 @@ def check_system_status(collection_name="nexus_slot_1"):
         pass
     return {"status": "offline", "ready": False, "document_count": 0}
 
-
-
-def get_uploaded_documents(collection_name="nexus_slot_1"):
+@st.cache_data(ttl=5)
+def get_uploaded_documents(collection_name="nexus_slot_1", uploader_key=0):
+    # Added uploader_key to force refresh when documents change
     try:
         params = {"collection_name": collection_name}
         response = requests.get(f"{BACKEND_URL}/api/v1/documents", params=params, headers=API_HEADERS, timeout=2)
@@ -551,7 +552,7 @@ with st.sidebar:
     
     
     # Only show Divider if we have something below to separate, or just keep spacing clean
-    if get_uploaded_documents(st.session_state["selected_slot"]):
+    if get_uploaded_documents(st.session_state["selected_slot"], st.session_state["uploader_key"]):
          st.divider()
     
     # Knowledge Management
@@ -560,7 +561,7 @@ with st.sidebar:
         st.session_state["expander_knowledge_open"] = False
         
     with st.expander("Current Knowledge", expanded=st.session_state["expander_knowledge_open"]):
-        documents = get_uploaded_documents(st.session_state["selected_slot"])
+        documents = get_uploaded_documents(st.session_state["selected_slot"], st.session_state["uploader_key"])
         
         if documents:
             for doc in documents:
@@ -717,7 +718,7 @@ with st.sidebar:
         st.caption("Danger Zone")
         
         # Check if current slot has documents
-        has_docs = len(get_uploaded_documents(st.session_state["selected_slot"])) > 0
+        has_docs = len(get_uploaded_documents(st.session_state["selected_slot"], st.session_state["uploader_key"])) > 0
         
         if st.button("Erase All Knowledge", help="Delete all documents in this memory slot", disabled=not has_docs):
             st.session_state["confirm_erase"] = True
@@ -806,8 +807,23 @@ else:
                         if sources:
                             final_response += "\n\n---\n**Verified Sources:**\n"
                             for source in sources:
-                                clean_source = source.replace('\n', ' ')[:150]
-                                final_response += f"- `{clean_source}...`\n"
+                                if isinstance(source, dict):
+                                    text = source.get("text", "")
+                                    meta = source.get("metadata", {})
+                                    # Handle path extraction safely
+                                    src_path = meta.get("source", "Unknown")
+                                    source_name = src_path.split("/")[-1] if src_path else "Unknown" # Simple split to avoid os dependency issues if path styles vary
+                                    
+                                    # Page info
+                                    page_num = meta.get("page", None)
+                                    page_info = f" (Page {page_num + 1})" if page_num is not None else ""
+                                    
+                                    clean_text = text.replace('\n', ' ').strip()[:200]
+                                    final_response += f"- 📄 **{source_name}**{page_info}:\n  > _{clean_text}..._\n"
+                                else:
+                                    # Fallback for legacy
+                                    clean_source = str(source).replace('\n', ' ')[:150]
+                                    final_response += f"- `{clean_source}...`\n"
                         
                         typewriter_effect(final_response, response_placeholder)
                         st.session_state.messages.append({"role": "assistant", "content": final_response})

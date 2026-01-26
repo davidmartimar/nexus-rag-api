@@ -336,8 +336,6 @@ def import_slot_data(collection_name: str, zip_path: str):
         return True
     except Exception as e:
         print(f"Error importing slot: {e}")
-        import traceback
-        traceback.print_exc()
         return False
         
 def get_slot_config():

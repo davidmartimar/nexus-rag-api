@@ -32,9 +32,13 @@ class UsageMetadata(BaseModel):
     remaining: int = Field(description="Mensajes restantes antes del bloqueo.")
     is_limit_reached: bool = Field(description="True si el usuario ha agotado su cuota.")
 
+class Source(BaseModel):
+    text: str
+    metadata: dict = Field(default_factory=dict)
+
 class ChatResponse(BaseModel):
     answer: str
-    sources: List[str] = []
+    sources: List[Source] = []
     lead_data: Optional[UniversalLead] = None
     usage: Optional[UsageMetadata] = None
 
