@@ -345,12 +345,16 @@ def get_slot_config():
     }
     
     if not os.path.exists(config_path):
+        print(f"DEBUG: Config file not found at {config_path}. Using default.")
         return default_config
         
     try:
         with open(config_path, "r") as f:
-            return json.load(f)
-    except Exception:
+            data = json.load(f)
+            print(f"DEBUG: Loaded config from {config_path}: {data}")
+            return data
+    except Exception as e:
+        print(f"DEBUG: Error loading config from {config_path}: {e}")
         return default_config
 
 def save_slot_config(config: dict):
@@ -358,6 +362,7 @@ def save_slot_config(config: dict):
     os.makedirs(CHROMA_DB_DIR, exist_ok=True)
     config_path = os.path.join(CHROMA_DB_DIR, "slots.json")
     try:
+        print(f"DEBUG: Saving config to {config_path}: {config}")
         with open(config_path, "w") as f:
             json.dump(config, f)
         return True
