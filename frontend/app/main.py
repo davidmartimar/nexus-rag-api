@@ -369,6 +369,16 @@ def delete_document(filename, collection_name="nexus_slot_1"):
 
 
 
+def update_and_save_slot_name(slot_id):
+    """Callback to update session state and save config immediately on change."""
+    new_name = st.session_state[f"in_{slot_id}"]
+    st.session_state["slot_names"][slot_id] = new_name
+    if save_slot_config(st.session_state["slot_names"]):
+        st.toast(f"Renamed to '{new_name}'", icon=":material/save:")
+    else:
+        st.toast("Failed to save name.", icon=":material/error:")
+
+
 def reset_knowledge_base(collection_name):
     try:
         response = requests.post(f"{BACKEND_URL}/api/v1/reset", json={"collection_name": collection_name}, headers=API_HEADERS, timeout=10)
@@ -600,7 +610,15 @@ with st.sidebar:
         for s_id in slot_ids:
             col_name, col_del = st.columns([8, 2])
             with col_name:
-                 st.session_state["slot_names"][s_id] = st.text_input(f"Name for {s_id}", value=st.session_state["slot_names"][s_id], key=f"in_{s_id}", label_visibility="collapsed")
+                 # Auto-save on change using callback
+                 st.text_input(
+                     f"Name for {s_id}", 
+                     value=st.session_state["slot_names"][s_id], 
+                     key=f"in_{s_id}", 
+                     label_visibility="collapsed",
+                     on_change=update_and_save_slot_name,
+                     args=(s_id,)
+                 )
             with col_del:
                 # Don't delete if it's the last one? Or allow it?
                 # Let's prevent deleting the currently selected one to avoid errors, or handle it.
@@ -622,16 +640,6 @@ with st.sidebar:
                              st.rerun()
                         else:
                             st.toast("Failed to delete from backend.", icon=":material/error:")
-
-        # Save Button for Renames
-        if st.button("Save Names", icon=":material/save:", help="Save name changes"):
-            if save_slot_config(st.session_state["slot_names"]):
-                st.toast("Configuration Saved!", icon=":material/save:")
-                st.session_state["expander_advanced_open"] = True # Keep open
-                time.sleep(1)
-                st.rerun()
-            else:
-                 st.error("Failed to save.")
         
         st.markdown("---")
         
