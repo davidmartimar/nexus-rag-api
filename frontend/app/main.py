@@ -31,7 +31,7 @@ if not os.path.exists(LOGO_PATH):
 # --- PAGE CONFIG ---
 st.set_page_config(
     page_title="NEXUS CORE",
-    page_icon=":material/network_intel_node:",
+    page_icon=":material/network_intelligence:",
     layout="wide",
     initial_sidebar_state="expanded"
 )
