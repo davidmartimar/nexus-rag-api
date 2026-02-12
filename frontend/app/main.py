@@ -31,7 +31,7 @@ if not os.path.exists(LOGO_PATH):
 # --- PAGE CONFIG ---
 st.set_page_config(
     page_title="NEXUS CORE",
-    page_icon="⚛️",
+    page_icon=":material/molecule:",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -192,7 +192,7 @@ def check_password():
                 pass
         
         if not env_password:
-             st.error("🚨 Configuration Error: NEXUS_FRONTEND_PASSWORD not set in Environment or secrets.toml")
+             st.error("Configuration Error: NEXUS_FRONTEND_PASSWORD not set in Environment or secrets.toml", icon=":material/error:")
              return
 
         if st.session_state["password"] == env_password:
@@ -249,7 +249,7 @@ def check_password():
             st.markdown("""
                 <div style="text-align: center; margin-bottom: 30px;">
                     <div class="nexus-logo" style="font-size: 3.5rem;"><span class="nexus-accent">ネ</span>NEXUS</div>
-                    <div class="nexus-subtitle" style="color: #f87171;">⛔ Access Denied</div>
+                    <div class="nexus-subtitle" style="color: #f87171;">Access Denied</div>
                 </div>
             """, unsafe_allow_html=True)
             
@@ -440,7 +440,7 @@ if "slot_names" not in st.session_state:
         st.session_state["slot_names"] = remote_config
     else:
         # Fallback default
-        st.error("⚠️ Connection to Neural Core timed out. Using offline defaults.")
+        st.error("Connection to Neural Core timed out. Using offline defaults.", icon=":material/warning:")
         st.session_state["slot_names"] = {
             "nexus_slot_1": "Memory Slot 1"
         }
@@ -524,7 +524,7 @@ with st.sidebar:
     
     if uploaded_files:
         st.markdown(f"**Selected:** {len(uploaded_files)} files")
-        if st.button("Process Documents", type="primary", use_container_width=True):
+        if st.button("Process Documents", icon=":material/settings_suggest:", type="primary", use_container_width=True):
             with st.spinner("Ingesting knowledge..."):
                 try:
                     files = []
@@ -539,7 +539,7 @@ with st.sidebar:
                         results = response.json().get("results", [])
                         success_count = sum(1 for r in results if r["status"] == "success")
                         if success_count > 0:
-                            st.toast(f"Successfully ingested {success_count} documents!", icon="✅")
+                            st.toast(f"Successfully ingested {success_count} documents!", icon=":material/check_circle:")
                             time.sleep(1)
                             st.session_state["uploader_key"] += 1
                             st.rerun() # Refresh to update status
@@ -567,11 +567,11 @@ with st.sidebar:
             for doc in documents:
                 col_doc, col_del = st.columns([8, 2])
                 with col_doc:
-                    st.markdown(f"<div style='font-size:0.8rem; padding-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>📄 {doc}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:0.8rem; padding-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>:material/description: {doc}</div>", unsafe_allow_html=True)
                 with col_del:
-                    if st.button("🗑️", key=f"del_{doc}", help=f"Delete {doc}"):
+                    if st.button("", icon=":material/delete:", key=f"del_{doc}", help=f"Delete {doc}"):
                         if delete_document(doc, st.session_state["selected_slot"]):
-                            st.toast(f"Deleted {doc}", icon="🗑️")
+                            st.toast(f"Deleted {doc}", icon=":material/delete:")
                             st.session_state["expander_knowledge_open"] = True # Keep open
                             time.sleep(0.5)
                             st.rerun()
@@ -608,25 +608,25 @@ with st.sidebar:
                 # Use a unique key. If clicked, we handle it here.
                 # Issue: st.button return True only on the run it is clicked.
                 
-                if st.button("🗑️", key=f"del_slot_{s_id}", help="Delete this memory slot"):
+                if st.button("", icon=":material/delete:", key=f"del_slot_{s_id}", help="Delete this memory slot"):
                     if len(st.session_state["slot_names"]) <= 1:
-                        st.toast("Cannot delete the last memory slot!", icon="🚫")
+                        st.toast("Cannot delete the last memory slot!", icon=":material/block:")
                     elif s_id == st.session_state["selected_slot"]:
-                        st.toast("Cannot delete active slot. Switch first.", icon="🚫")
+                        st.toast("Cannot delete active slot. Switch first.", icon=":material/block:")
                     else:
                         if remove_slot(s_id):
                              del st.session_state["slot_names"][s_id]
-                             st.toast("Memory slot deleted.", icon="🗑️")
+                             st.toast("Memory slot deleted.", icon=":material/delete:")
                              st.session_state["expander_advanced_open"] = True # Keep open
                              time.sleep(0.5)
                              st.rerun()
                         else:
-                            st.toast("Failed to delete from backend.", icon="❌")
+                            st.toast("Failed to delete from backend.", icon=":material/error:")
 
         # Save Button for Renames
-        if st.button("💾 Save Names", help="Save name changes"):
+        if st.button("Save Names", icon=":material/save:", help="Save name changes"):
             if save_slot_config(st.session_state["slot_names"]):
-                st.toast("Configuration Saved!", icon="💾")
+                st.toast("Configuration Saved!", icon=":material/save:")
                 st.session_state["expander_advanced_open"] = True # Keep open
                 time.sleep(1)
                 st.rerun()
@@ -640,12 +640,12 @@ with st.sidebar:
         with col_new:
             new_brain_name = st.text_input("New Brain Name", placeholder="e.g. Project X", key="new_brain_in", label_visibility="collapsed")
         with col_add:
-            if st.button("➕", help="Create new memory slot"):
+            if st.button("", icon=":material/add:", help="Create new memory slot"):
                 if new_brain_name:
                     res = add_new_slot(new_brain_name)
                     if res:
                         st.session_state["slot_names"][res["slot_id"]] = res["name"]
-                        st.toast("New Brain Created!", icon="✅")
+                        st.toast("New Brain Created!", icon=":material/check_circle:")
                         st.session_state["expander_advanced_open"] = True # Keep open
                         time.sleep(1)
                         st.rerun()
@@ -654,7 +654,7 @@ with st.sidebar:
 
         # 2. Memory Export/Import
         st.caption("Export/Import Memory Slot")
-        st.info("Export the current brain's knowledge to a zip file, or import knowledge from a zip file.")
+        st.info("Export the current brain's knowledge to a zip file, or import knowledge from a zip file.", icon=":material/info:")
         
         current_slot = st.session_state["selected_slot"]
         current_slot_name = st.session_state["slot_names"].get(current_slot, "Unknown")
@@ -662,7 +662,7 @@ with st.sidebar:
         # EXPORT
         col_prep, col_dl = st.columns([1, 1])
         with col_prep:
-            if st.button("📦 Prepare Export", help="Generate backup"):
+            if st.button("Prepare Export", icon=":material/archive:", help="Generate backup"):
                 with st.spinner("Archiving..."):
                     try:
                         params = {"collection_name": current_slot}
@@ -670,7 +670,7 @@ with st.sidebar:
                         if response.status_code == 200:
                             st.session_state["export_data"] = response.content
                             st.session_state["export_name"] = f"nexus_export_{current_slot}.zip"
-                            st.toast("Export Ready!", icon="✅")
+                            st.toast("Export Ready!", icon=":material/check_circle:")
                         else:
                             st.error("Export Failed")
                     except Exception as e:
@@ -679,7 +679,8 @@ with st.sidebar:
         with col_dl:
             if "export_data" in st.session_state:
                 st.download_button(
-                    label="⬇️ Download",
+                    label="Download",
+                    icon=":material/download:",
                     data=st.session_state["export_data"],
                     file_name=st.session_state["export_name"],
                     mime="application/zip",
@@ -704,7 +705,7 @@ with st.sidebar:
                         response = requests.post(f"{BACKEND_URL}/api/v1/import", files=files, data=data, timeout=60)
                         
                         if response.status_code == 200:
-                            st.toast("Import Successful!", icon="✅")
+                            st.toast("Import Successful!", icon=":material/check_circle:")
                             time.sleep(1)
                             st.rerun()
                         else:
@@ -720,16 +721,16 @@ with st.sidebar:
         # Check if current slot has documents
         has_docs = len(get_uploaded_documents(st.session_state["selected_slot"], st.session_state["uploader_key"])) > 0
         
-        if st.button("Erase All Knowledge", help="Delete all documents in this memory slot", disabled=not has_docs):
+        if st.button("Erase All Knowledge", icon=":material/delete_forever:", help="Delete all documents in this memory slot", disabled=not has_docs):
             st.session_state["confirm_erase"] = True
 
         if st.session_state.get("confirm_erase", False):
-            st.warning(f"Are you sure you want to delete ALL knowledge in {st.session_state['slot_names'][st.session_state['selected_slot']]}?")
+            st.warning(f"Are you sure you want to delete ALL knowledge in {st.session_state['slot_names'][st.session_state['selected_slot']]}?", icon=":material/warning:")
             col_yes, col_no = st.columns(2)
             with col_yes:
                 if st.button("Yes, Delete Everything", type="primary"):
                     if reset_knowledge_base(st.session_state["selected_slot"]):
-                         st.toast("Brain washed successfully!")
+                         st.toast("Brain washed successfully!", icon=":material/psychology:")
                          st.session_state["confirm_erase"] = False
                          time.sleep(1)
                          st.rerun()
@@ -819,7 +820,7 @@ else:
                                     page_info = f" (Page {page_num + 1})" if page_num is not None else ""
                                     
                                     clean_text = text.replace('\n', ' ').strip()[:200]
-                                    final_response += f"- 📄 **{source_name}**{page_info}:\n  > _{clean_text}..._\n"
+                                    final_response += f"- :material/description: **{source_name}**{page_info}:\n  > _{clean_text}..._\n"
                                 else:
                                     # Fallback for legacy
                                     clean_source = str(source).replace('\n', ' ')[:150]
@@ -839,6 +840,7 @@ if len(st.session_state.messages) > 1:
     # Check if download button click triggered (auto-rerun handled by streamlit)
     st.download_button(
         label="Download Conversation",
+        icon=":material/download:",
         data=pdf_bytes,
         file_name="nexus_conversation.pdf",
         mime="application/pdf"
