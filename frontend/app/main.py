@@ -380,9 +380,20 @@ def delete_document(filename, collection_name="nexus_slot_1"):
 def update_and_save_slot_name(slot_id):
     """Callback to update session state and save config immediately on change."""
     new_name = st.session_state[f"in_{slot_id}"]
-    st.session_state["slot_names"][slot_id] = new_name
-    if save_slot_config(st.session_state["slot_names"]):
+    
+    # Create a copy to force Streamlit to detect the change in session_state
+    updated_slots = st.session_state["slot_names"].copy()
+    updated_slots[slot_id] = new_name
+    
+    # Update the session state with the new dictionary object
+    st.session_state["slot_names"] = updated_slots
+    
+    if save_slot_config(updated_slots):
         st.toast(f"Renamed to '{new_name}'", icon=":material/save:")
+        # Force a rerun to update the sidebar immediately
+        # We need to wait a tiny bit for the toast to register if we want, but rerun is prio
+        time.sleep(0.1) 
+        st.rerun()
     else:
         st.toast("Failed to save name.", icon=":material/error:")
 
