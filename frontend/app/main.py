@@ -394,11 +394,12 @@ def update_slot_name_callback(slot_id):
     
     if save_slot_config(updated_slots):
         st.toast(f"Renamed to '{new_name}'", icon=":material/save:")
-        # Force sync from backend to ensure 100% consistency
-        # This fixes the "first try ignored" issue by reloading the source of truth
-        remote = get_slot_config()
-        if remote:
-             st.session_state["slot_names"] = remote
+        
+        # Force Sidebar Refresh by incrementing revision
+        # This forces the selectbox to completely rebuild with the new name
+        if "slot_list_revision" not in st.session_state:
+            st.session_state["slot_list_revision"] = 0
+        st.session_state["slot_list_revision"] += 1
     else:
         st.toast("Failed to save name.", icon=":material/error:")
 
@@ -536,13 +537,22 @@ with st.sidebar:
     if st.session_state.get("selected_slot") in slot_keys:
         current_index = slot_keys.index(st.session_state["selected_slot"])
 
-    st.selectbox(
+    # Ensure revision exists
+    if "slot_list_revision" not in st.session_state:
+        st.session_state["slot_list_revision"] = 0
+
+    # Dynamic Key to force rebuild on rename
+    selector_key = f"slot_selector_{st.session_state['slot_list_revision']}"
+
+    selected = st.selectbox(
         "Active Memory Slot",
         options=slot_keys,
         format_func=lambda x: st.session_state["slot_names"][x],
         index=current_index,
-        key="selected_slot"
+        key=selector_key
     )
+    # Sync source of truth
+    st.session_state["selected_slot"] = selected
     st.markdown("---")
     
     st.markdown("### Knowledge Ingestion")
