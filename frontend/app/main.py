@@ -3,6 +3,7 @@ import requests
 import time
 import base64
 import os
+from PIL import Image
 from fpdf import FPDF
 
 # --- CONFIGURATION ---
@@ -13,6 +14,7 @@ API_HEADERS = {"X-NEXUS-KEY": NEXUS_API_KEY} if NEXUS_API_KEY else {}
 # --- ASSET PATH RESOLUTION ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(current_dir, "nexus_logo.svg")
+ICON_PATH = os.path.join(current_dir, "nexus_icon.png")
 
 # Fallback: Create the file if it doesn't exist
 if not os.path.exists(LOGO_PATH):
@@ -29,9 +31,15 @@ if not os.path.exists(LOGO_PATH):
         print(f"Error generating logo asset: {e}")
 
 # --- PAGE CONFIG ---
+try:
+    img = Image.open(ICON_PATH)
+    page_icon_config = img
+except Exception:
+    page_icon_config = ":material/network_intelligence:" 
+
 st.set_page_config(
     page_title="NEXUS",
-    page_icon="nexus_icon.png",
+    page_icon=page_icon_config,
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -853,3 +861,4 @@ if len(st.session_state.messages) > 1:
         file_name="nexus_conversation.pdf",
         mime="application/pdf"
     )
+    
