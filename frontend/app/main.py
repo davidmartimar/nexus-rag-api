@@ -380,6 +380,23 @@ def delete_document(filename, collection_name="nexus_slot_1"):
 
 
 
+def update_slot_name_callback(slot_id):
+    """Callback to update session state and save config immediately on change."""
+    new_name = st.session_state[f"in_{slot_id}"]
+    
+    # Create a copy to force Streamlit to detect the change in session_state
+    updated_slots = st.session_state["slot_names"].copy()
+    updated_slots[slot_id] = new_name
+    
+    # Reassign to session state
+    st.session_state["slot_names"] = updated_slots
+    
+    if save_slot_config(updated_slots):
+        st.toast(f"Renamed to '{new_name}'", icon=":material/save:")
+    else:
+        st.toast("Failed to save name.", icon=":material/error:")
+
+
 def reset_knowledge_base(collection_name):
     try:
         response = requests.post(f"{BACKEND_URL}/api/v1/reset", json={"collection_name": collection_name}, headers=API_HEADERS, timeout=10)
@@ -611,30 +628,15 @@ with st.sidebar:
         for s_id in slot_ids:
             col_name, col_del = st.columns([8, 2])
             with col_name:
-                 # Auto-save logic without callback to allow valid st.rerun()
-                 new_name_input = st.text_input(
+                 # Auto-save logic with callback (standard Streamlit pattern)
+                 st.text_input(
                      f"Name for {s_id}", 
                      value=st.session_state["slot_names"][s_id], 
                      key=f"in_{s_id}", 
-                     label_visibility="collapsed"
+                     label_visibility="collapsed",
+                     on_change=update_slot_name_callback,
+                     args=(s_id,)
                  )
-                 
-                 # Detect Change
-                 if new_name_input != st.session_state["slot_names"][s_id]:
-                     # Create a copy to force Streamlit to detect the change in session_state
-                     updated_slots = st.session_state["slot_names"].copy()
-                     updated_slots[s_id] = new_name_input
-                     
-                     # Reassign to session state
-                     st.session_state["slot_names"] = updated_slots
-                     
-                     # Persist using the UPDATED dict
-                     if save_slot_config(updated_slots):
-                         st.toast(f"Renamed to '{new_name_input}'", icon=":material/save:")
-                         time.sleep(0.1)
-                         st.rerun()
-                     else:
-                         st.toast("Failed to save name.", icon=":material/error:")
             with col_del:
                 # Don't delete if it's the last one? Or allow it?
                 # Let's prevent deleting the currently selected one to avoid errors, or handle it.
