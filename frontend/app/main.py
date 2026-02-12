@@ -316,7 +316,8 @@ def typewriter_effect(text, placeholder):
 def check_system_status(collection_name="nexus_slot_1"):
     try:
         params = {"collection_name": collection_name}
-        response = requests.get(f"{BACKEND_URL}/api/v1/status", params=params, headers=API_HEADERS, timeout=2)
+        # Increased timeout to prevent false "offline" during heavy ops
+        response = requests.get(f"{BACKEND_URL}/api/v1/status", params=params, headers=API_HEADERS, timeout=5)
         if response.status_code == 200:
             return response.json()
     except:
@@ -393,6 +394,11 @@ def update_slot_name_callback(slot_id):
     
     if save_slot_config(updated_slots):
         st.toast(f"Renamed to '{new_name}'", icon=":material/save:")
+        # Force sync from backend to ensure 100% consistency
+        # This fixes the "first try ignored" issue by reloading the source of truth
+        remote = get_slot_config()
+        if remote:
+             st.session_state["slot_names"] = remote
     else:
         st.toast("Failed to save name.", icon=":material/error:")
 
