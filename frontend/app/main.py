@@ -621,9 +621,15 @@ with st.sidebar:
                  
                  # Detect Change
                  if new_name_input != st.session_state["slot_names"][s_id]:
-                     st.session_state["slot_names"][s_id] = new_name_input
-                     # Persist
-                     if save_slot_config(st.session_state["slot_names"]):
+                     # Create a copy to force Streamlit to detect the change in session_state
+                     updated_slots = st.session_state["slot_names"].copy()
+                     updated_slots[s_id] = new_name_input
+                     
+                     # Reassign to session state
+                     st.session_state["slot_names"] = updated_slots
+                     
+                     # Persist using the UPDATED dict
+                     if save_slot_config(updated_slots):
                          st.toast(f"Renamed to '{new_name_input}'", icon=":material/save:")
                          time.sleep(0.1)
                          st.rerun()
