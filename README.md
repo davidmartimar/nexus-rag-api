@@ -2,6 +2,8 @@
 
 **NEXUS** is a production-ready, "Pure RAG" system designed for secure enterprise document ingestion, intelligent querying, and automated evaluation. It features a microservices architecture fully containerized with Docker, featuring **Dynamic Memory Slots** and **Scientific Performance Metrics**.
 
+[![Nexus Demo](https://img.youtube.com/vi/ZUbS-jjMDeI/0.jpg)](https://www.youtube.com/watch?v=ZUbS-jjMDeI)
+
 ![Status](https://img.shields.io/badge/Status-Production-success)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 ![Python](https://img.shields.io/badge/Python-3.10-yellow)
@@ -13,6 +15,7 @@
 * **Enterprise Security**:
     * **Frontend Gateway**: Simple yet effective password protection for the UI.
     * **API Shield**: Backend endpoints protected by `X-NEXUS-KEY` header, ready for n8n/Make integration.
+* **Audio Intelligence**: **[NEW]** Native support for audio files (MP3, WAV, M4A). The system automatically transcribes meeting recordings or voice notes using **OpenAI Whisper** before indexing them into memory.
 * **CI/CD for AI (RAGAS)**: Integrated evaluation pipeline to measure *Faithfulness*, *Context Precision*, and *Answer Relevance* using synthetic test sets.
 * **Dynamic Memory Slots**: Create unlimited, isolated knowledge bases (Collections) without data overlap. Perfect for managing multiple clients or departments (e.g., HR vs. Finance).
 * **Advanced Ingestion**: Powered by `PyMuPDF` to accurately parse complex layouts, multi-column PDFs, and tables.
@@ -27,7 +30,7 @@ The system follows a **Microservices** pattern, decoupling logic from the interf
 | :--- | :--- | :--- |
 | **The Brain (Backend)** | **FastAPI** + **LangChain** | Async API handling RAG logic and LLM orchestration (OpenAI GPT-4). |
 | **The Memory (Store)** | **ChromaDB** | Persistent local vector storage with Docker Volume persistence. |
-| **The Eyes (Ingest)** | **PyMuPDF** | High-fidelity document parsing and chunking strategies. |
+| **The Eyes (Ingest)** | **PyMuPDF** + **Whisper** | High-fidelity PDF parsing & **Audio Transcription** (MP3/WAV). |
 | **The Face (Frontend)** | **Streamlit** | Reactive UI for chat, ingestion, and slot management. |
 | **The Judge (Eval)** | **Ragas** | Automated quality assurance framework. |
 
