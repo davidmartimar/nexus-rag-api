@@ -1,72 +1,82 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel
-from typing import List, Optional
-from app.services.evaluation_service import generate_evaluation_testset, run_evaluation
-import json
 import os
+import json
+import logging
+from pathlib import Path
+from typing import List, Optional, Dict, Any
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+from app.services.evaluation_service import generate_evaluation_testset, run_evaluation
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-# Simple storage for the last generated testset (in memory for now, or file)
-LAST_TESTSET_PATH = "latest_testset.json"
+# Constants
+# Using Path for robust cross-platform path handling
+LAST_TESTSET_PATH = Path("latest_testset.json")
 
 class GenerateRequest(BaseModel):
-    limit: int = 15
+    limit: int = Field(default=15, ge=1, le=100, description="Number of test cases to generate")
 
 class RunRequest(BaseModel):
-    testset: Optional[List[dict]] = None
-    
+    testset: Optional[List[Dict[str, Any]]] = Field(default=None, description="Optional custom testset to evaluate")
+
+
 @router.post("/evaluate/generate", tags=["Evaluation"])
-async def generate_testset(request: GenerateRequest):
+def generate_testset(request: GenerateRequest):
     """
     Generates a synthetic test set from the current knowledge base.
-    This can take a while (minutes).
+    Warning: This is a computationally intensive task and runs in the background threadpool.
     """
     try:
+        logger.info(f"Starting testset generation with limit: {request.limit}")
         data = generate_evaluation_testset(limit=request.limit)
         
-        # Save to disk
-        with open(LAST_TESTSET_PATH, "w") as f:
-            json.dump(data, f)
+        # Persist to disk safely with UTF-8 encoding
+        with LAST_TESTSET_PATH.open("w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
             
         return {
             "status": "success",
             "count": len(data),
-            "preview": data[:3],
-            "message": "Testset generated and saved."
+            "preview": data[:3] if data else [],
+            "message": "Testset generated and saved successfully."
         }
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error during testset generation", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error during testset generation.")
+
 
 @router.post("/evaluate/run", tags=["Evaluation"])
-async def evaluate_system(request: RunRequest):
+def evaluate_system(request: RunRequest):
     """
-    Runs the generic RAGAS evaluation metrics on the testset.
-    If no testset provided, tries to load the last generated one.
+    Runs evaluation metrics on the provided testset or the last locally cached one.
     """
     try:
         data = request.testset
+        
+        # Load cached testset if none is explicitly provided in the request
         if not data:
-            if os.path.exists(LAST_TESTSET_PATH):
-                with open(LAST_TESTSET_PATH, "r") as f:
+            if LAST_TESTSET_PATH.exists():
+                with LAST_TESTSET_PATH.open("r", encoding="utf-8") as f:
                     data = json.load(f)
             else:
+                logger.warning("Evaluation requested but no testset provided or found on disk.")
                 raise HTTPException(status_code=400, detail="No testset provided and no cached testset found.")
         
+        logger.info(f"Starting evaluation on {len(data)} items.")
         results = run_evaluation(data)
-        
-        # Calculate averages for easy reading
-        # results is a list of dicts with scores per row? 
-        # Actually evaluate returns a Result object which behaves like a dict of averages, 
-        # but to_pandas().to_dict gave us rows.
-        # Let's fix evaluation_service return if we want summary.
-        # But row-level is good for details.
         
         return {
             "status": "success",
             "results": results
         }
+        
+    except HTTPException:
+        # Re-raise HTTPExceptions intentionally thrown (like the 400 above)
+        raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error executing evaluation metrics", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error during evaluation.")

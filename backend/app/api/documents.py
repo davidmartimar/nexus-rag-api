@@ -1,23 +1,63 @@
-from fastapi import APIRouter, HTTPException
+import logging
+from typing import Dict, Any, List
+
+from fastapi import APIRouter, HTTPException, Query
 from app.services.rag_service import get_all_documents, delete_document
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/documents", tags=["Documents"])
-async def list_documents(collection_name: str = "nexus_slot_1"):
+def list_documents(
+    collection_name: str = Query(
+        default="nexus_slot_1", 
+        description="The target memory slot to retrieve documents from"
+    )
+) -> Dict[str, List[Any]]:
     """
-    Returns a list of all uploaded documents.
+    Retrieves a list of all indexed documents in the specified knowledge base.
+    Runs synchronously to prevent blocking the async event loop during database queries.
     """
-    documents = get_all_documents(collection_name)
-    return {"documents": documents}
+    try:
+        documents = get_all_documents(collection_name)
+        return {"documents": documents}
+    except Exception as e:
+        logger.error(f"Error retrieving documents for collection '{collection_name}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail="Internal server error while retrieving documents from the vector database."
+        )
 
 @router.delete("/documents/{filename}", tags=["Documents"])
-async def remove_document(filename: str, collection_name: str = "nexus_slot_1"):
+def remove_document(
+    filename: str, 
+    collection_name: str = Query(
+        default="nexus_slot_1", 
+        description="The target memory slot to delete the document from"
+    )
+) -> Dict[str, str]:
     """
-    Deletes a specific document from the knowledge base.
+    Removes a specific document and its associated embeddings from the knowledge base.
     """
-    success = delete_document(filename, collection_name)
-    if not success:
-        raise HTTPException(status_code=404, detail=f"Document '{filename}' not found or could not be deleted.")
-    
-    return {"status": "success", "message": f"Document '{filename}' deleted."}
+    try:
+        success = delete_document(filename, collection_name)
+        
+        if not success:
+            logger.warning(f"Deletion failed: Document '{filename}' not found in '{collection_name}'.")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Document '{filename}' not found in the specified collection."
+            )
+        
+        logger.info(f"Successfully deleted document '{filename}' from '{collection_name}'.")
+        return {"status": "success", "message": f"Document '{filename}' deleted successfully."}
+        
+    except HTTPException:
+        # Re-raise the 404 intentionally thrown above
+        raise
+    except Exception as e:
+        logger.error(f"Critical error deleting document '{filename}' from '{collection_name}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail="Internal server error while attempting to delete the document."
+        )

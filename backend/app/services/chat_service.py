@@ -1,28 +1,39 @@
-import os
+import logging
+from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
 
+# Load environment variables (OPENAI_API_KEY)
 load_dotenv()
 
-from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import Chroma
-from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_core.prompts import ChatPromptTemplate
 from app.schemas import UniversalLead
+from app.services.rag_service import DEFAULT_COLLECTION_NAME
 
 # Configuration
 CHROMA_DB_DIR = "/app/chroma_db"
-from app.services.rag_service import DEFAULT_COLLECTION_NAME
+logger = logging.getLogger(__name__)
 
-def get_answer(query: str, collection_name: str = DEFAULT_COLLECTION_NAME, history: list = [], business_context: str = None):
+
+def get_answer(
+    query: str, 
+    collection_name: str = DEFAULT_COLLECTION_NAME, 
+    history: Optional[List[Dict[str, str]]] = None, 
+    business_context: Optional[str] = None
+) -> Dict[str, Any]:
     """
-    1. Embeds the query.
-    2. Searches ChromaDB for relevant chunks.
-    3. Sends chunks + query + history to LLM for Answer.
-    4. (Parallel/Post) Sends context to LLM for Lead Extraction.
-    5. Returns answer + sources + lead_data.
+    Core RAG Pipeline:
+    1. Connects to ChromaDB for semantic search.
+    2. Hydrates conversation history into LangChain Memory.
+    3. Retrieves context and generates an answer via LLM.
+    4. Runs a parallel structured output chain for Lead Extraction.
     """
+    if history is None:
+        history = []
+
     try:
         # 1. Initialize Vector DB Connection
         embeddings = OpenAIEmbeddings()
@@ -32,10 +43,11 @@ def get_answer(query: str, collection_name: str = DEFAULT_COLLECTION_NAME, histo
             collection_name=collection_name
         )
 
-        # 2. Initialize LLM (The Brain)
+        # 2. Initialize LLM (Centralized for reuse)
+        # Using gpt-3.5-turbo (consider upgrading to gpt-4o-mini for better cost/performance in production)
         llm_chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
         
-        # 3. Initialize Memory
+        # 3. Initialize Conversation Memory
         memory = ConversationBufferWindowMemory(
             memory_key="chat_history", 
             return_messages=True, 
@@ -43,15 +55,17 @@ def get_answer(query: str, collection_name: str = DEFAULT_COLLECTION_NAME, histo
             output_key="answer"
         )
         
-        # Reconstruct Memory from History
+        # Reconstruct Memory state from stateless API payload
         for exchange in history:
-            if "user" in exchange and "assistant" in exchange:
+            user_msg = exchange.get("user")
+            ast_msg = exchange.get("assistant")
+            if user_msg and ast_msg:
                 memory.save_context(
-                    {"input": exchange["user"]}, 
-                    {"answer": exchange["assistant"]}
+                    {"input": user_msg}, 
+                    {"answer": ast_msg}
                 )
 
-        # 4. RAG Chain for Answer
+        # 4. RAG Chain Configuration
         qa_chain = ConversationalRetrievalChain.from_llm(
             llm=llm_chat,
             retriever=vector_db.as_retriever(search_kwargs={"k": 6}),
@@ -60,44 +74,49 @@ def get_answer(query: str, collection_name: str = DEFAULT_COLLECTION_NAME, histo
             output_key="answer"
         )
 
-        # 5. Ask the question (RAG)
-        result = qa_chain({"question": query})
-        answer = result["answer"]
-        sources = [{"text": doc.page_content, "metadata": doc.metadata} for doc in result["source_documents"]]
+        # 5. Execute RAG Retrieval and Generation (Using modern .invoke())
+        logger.info(f"Processing query for collection '{collection_name}'")
+        result = qa_chain.invoke({"question": query})
+        
+        answer = result.get("answer", "")
+        sources = [
+            {"text": doc.page_content, "metadata": doc.metadata} 
+            for doc in result.get("source_documents", [])
+        ]
 
-        # 6. Extract Lead Data (Multi-Tenant / Business Agnostic)
+        # 6. Structured Output: Lead Extraction
         lead_data = None
         if business_context:
             try:
-                # Prepare a focused extraction prompt
-                # We analyze the LAST interaction (query + answer) mainly, 
-                # but might need history if provided. 
-                extraction_llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
-                structured_llm = extraction_llm.with_structured_output(UniversalLead)
+                # Force the LLM to strictly output the Pydantic schema
+                structured_llm = llm_chat.with_structured_output(UniversalLead)
                 
-                system_prompt = f"""
-                You are a Lead Extraction Expert for a business.
-                
-                BUSINESS CONTEXT INSTRUCTIONS:
-                "{business_context}"
-                
-                Analyze the user's latest message and the assistant's reply to determine if this is a lead.
-                Extract the data into the JSON structure provided.
-                If the user is just asking general info without clear intent, set 'is_lead' to False.
-                """
+                # Proper Prompt Template using variables, preventing prompt injection crashes
+                system_prompt = (
+                    "You are a Lead Extraction Expert for a business.\n\n"
+                    "BUSINESS CONTEXT INSTRUCTIONS:\n{business_context}\n\n"
+                    "Analyze the user's latest query and the assistant's reply to determine if this is a lead. "
+                    "Extract the data strictly into the provided JSON structure. "
+                    "If the user is just asking general info without clear commercial intent, set 'is_lead' to False."
+                )
                 
                 prompt = ChatPromptTemplate.from_messages([
                     ("system", system_prompt),
-                    ("human", f"User Query: {query}\nAssistant Reply: {answer}")
+                    ("human", "User Query: {query}\nAssistant Reply: {answer}")
                 ])
                 
-                chain = prompt | structured_llm
-                lead_data = chain.invoke({})
+                extraction_chain = prompt | structured_llm
                 
-            except Exception as e:
-                print(f"Lead extraction failed: {e}")
-                # We do not fail the main request if extraction fails
-                lead_data = None
+                # Execute extraction via LangChain Expression Language (LCEL)
+                lead_data = extraction_chain.invoke({
+                    "business_context": business_context,
+                    "query": query,
+                    "answer": answer
+                })
+                
+            except Exception as extraction_error:
+                logger.error(f"Structured lead extraction failed: {extraction_error}", exc_info=True)
+                lead_data = None # Failsafe: return the chat answer even if extraction fails
 
         return {
             "answer": answer,
@@ -106,5 +125,5 @@ def get_answer(query: str, collection_name: str = DEFAULT_COLLECTION_NAME, histo
         }
 
     except Exception as e:
-        print(f"Error generating answer: {e}")
-        raise e
+        logger.error(f"Critical error in core RAG pipeline: {e}", exc_info=True)
+        raise
