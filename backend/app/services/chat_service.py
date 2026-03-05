@@ -44,8 +44,8 @@ def get_answer(
         )
 
         # 2. Initialize LLM (Centralized for reuse)
-        # Using gpt-3.5-turbo (consider upgrading to gpt-4o-mini for better cost/performance in production)
-        llm_chat = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+        # gpt-3.5-turbo for testing, gpt-4o-mini for better cost/performance in production
+        llm_chat = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
         
         # 3. Initialize Conversation Memory
         memory = ConversationBufferWindowMemory(
