@@ -392,14 +392,11 @@ def update_slot_name_callback(slot_id):
     # Reassign to session state
     st.session_state["slot_names"] = updated_slots
     
+    # Always force selectbox rebuild immediately (decouple UI refresh from backend save)
+    st.session_state["slot_list_revision"] = st.session_state.get("slot_list_revision", 0) + 1
+
     if save_slot_config(updated_slots):
         st.toast(f"Renamed to '{new_name}'", icon=":material/save:")
-        
-        # Force Sidebar Refresh by incrementing revision
-        # This forces the selectbox to completely rebuild with the new name
-        if "slot_list_revision" not in st.session_state:
-            st.session_state["slot_list_revision"] = 0
-        st.session_state["slot_list_revision"] += 1
     else:
         st.toast("Failed to save name.", icon=":material/error:")
 
