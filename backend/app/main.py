@@ -32,4 +32,4 @@ app.include_router(evaluation.router, prefix="/api/v1", dependencies=[Depends(ve
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to NEXUS API. Systems Online."}
+    return {"status": "ok"}
